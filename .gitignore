@@ -1,0 +1,12 @@
+# Credenciais e arquivos confidenciais
+credenciais.txt
+.env
+
+# Dependências
+node_modules/
+vendor/
+
+# Arquivos de sistema
+Thumbs.db
+.DS_Store
+*.log

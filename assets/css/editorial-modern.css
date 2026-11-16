@@ -1,0 +1,321 @@
+/**
+ * O FAROL - Design System & Modern Editorial Stylesheet
+ * Inspirado nas melhores publicações mundiais (NYTimes, The Guardian, The Atlantic, BBC)
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;0,6..72,800;1,6..72,400;1,6..72,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;0,900;1,600;1,700&display=swap');
+
+:root {
+  /* Cores Base do Portal */
+  --farol-bg: #fbfbf9;
+  --farol-canvas: #f6f5f0;
+  --farol-card: #ffffff;
+  --farol-text-main: #111827;
+  --farol-text-muted: #4b5563;
+  --farol-text-subtle: #6b7280;
+  
+  /* Acentos Editoriais de Alto Padrão */
+  --farol-crimson: #b91c1c;
+  --farol-crimson-hover: #991b1b;
+  --farol-teal: #0f4c5c;
+  --farol-teal-dark: #0a2f38;
+  --farol-teal-light: #e6f0f2;
+  --farol-border: #e6e3da;
+  --farol-border-dark: #111827;
+  
+  /* Tipografia */
+  --font-serif-headline: 'Playfair Display', Georgia, serif;
+  --font-serif-body: 'Newsreader', Georgia, serif;
+  --font-sans-ui: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-display-masthead: 'Playfair Display', 'Cinzel', serif;
+
+  /* Sombras Sutis Editoriais */
+  --shadow-subtle: 0 1px 3px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.02);
+  --shadow-card: 0 2px 6px -1px rgba(0, 0, 0, 0.04), 0 8px 24px -4px rgba(0, 0, 0, 0.04);
+  --shadow-hover: 0 12px 32px -4px rgba(0, 0, 0, 0.08), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+}
+
+*, ::before, ::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border-width: 0;
+  border-style: solid;
+  border-color: var(--farol-border);
+}
+
+html {
+  font-family: var(--font-sans-ui);
+  background-color: var(--farol-canvas);
+  color: var(--farol-text-main);
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--farol-canvas);
+  color: var(--farol-text-main);
+  line-height: 1.6;
+}
+
+/* Tipografias */
+.font-headline {
+  font-family: var(--font-serif-headline);
+  letter-spacing: -0.015em;
+}
+
+.font-editorial-body {
+  font-family: var(--font-serif-body);
+}
+
+.font-sans-ui {
+  font-family: var(--font-sans-ui);
+}
+
+.font-masthead {
+  font-family: var(--font-display-masthead);
+  letter-spacing: -0.02em;
+}
+
+/* Contêiner Geral */
+.container-farol {
+  width: 100%;
+  max-width: 1240px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1.25rem;
+  padding-right: 1.25rem;
+}
+
+/* Cartões com Acabamento Refinado */
+.editorial-card {
+  background: var(--farol-card);
+  border: 1px solid var(--farol-border);
+  box-shadow: var(--shadow-card);
+  border-radius: 4px;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.editorial-card:hover {
+  border-color: #d1cbbf;
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Efeito de Zoom Suave em Fotos */
+.img-zoom-wrapper {
+  overflow: hidden;
+  position: relative;
+}
+
+.img-zoom-wrapper img {
+  transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+
+.editorial-card:hover .img-zoom-wrapper img {
+  transform: scale(1.035);
+}
+
+/* Badges e Tags Editoriais */
+.editorial-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-sans-ui);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.65rem;
+  border-radius: 2px;
+  line-height: 1.2;
+}
+
+.badge-crimson {
+  background-color: var(--farol-crimson);
+  color: #ffffff;
+}
+
+.badge-outline-crimson {
+  background-color: transparent;
+  color: var(--farol-crimson);
+  border: 1px solid var(--farol-crimson);
+}
+
+.badge-teal {
+  background-color: var(--farol-teal-light);
+  color: var(--farol-teal);
+  border: 1px solid rgba(15, 76, 92, 0.15);
+}
+
+.badge-dark {
+  background-color: var(--farol-text-main);
+  color: #ffffff;
+}
+
+/* Divisórias do Jornalismo Clássico */
+.editorial-rule-double {
+  border-top: 3px double var(--farol-text-main);
+  border-bottom: 1px solid var(--farol-text-main);
+  padding: 2px 0;
+  margin: 1.25rem 0;
+}
+
+.section-header-modern {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  border-bottom: 2px solid var(--farol-text-main);
+  padding-bottom: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.section-header-modern h2,
+.section-header-modern h3 {
+  font-family: var(--font-serif-headline);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--farol-text-main);
+  position: relative;
+}
+
+.section-header-modern .section-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--farol-crimson);
+}
+
+/* Botões Modernos */
+.btn-editorial-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--farol-crimson);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.25rem;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 4px rgba(185, 28, 28, 0.15);
+}
+
+.btn-editorial-primary:hover {
+  background-color: var(--farol-crimson-hover);
+  box-shadow: 0 4px 10px rgba(185, 28, 28, 0.25);
+  transform: translateY(-1px);
+}
+
+.btn-editorial-teal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background-color: var(--farol-teal);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.65rem 1.25rem;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.btn-editorial-teal:hover {
+  background-color: var(--farol-teal-dark);
+  transform: translateY(-1px);
+}
+
+/* Barra de Progresso de Leitura */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--farol-crimson);
+  width: 0%;
+  z-index: 9999;
+  transition: width 0.1s ease-out;
+}
+
+/* Botão Voltar ao Topo */
+#btn-back-to-top {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 1px solid var(--farol-border);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--farol-text-main);
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 900;
+}
+
+#btn-back-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+#btn-back-to-top:hover {
+  background: var(--farol-crimson);
+  color: #ffffff;
+  border-color: var(--farol-crimson);
+  transform: translateY(-3px);
+}
+
+/* Citação Editorial Moderna (Pull Quote) */
+.modern-pullquote {
+  position: relative;
+  background: #ffffff;
+  border-left: 4px solid var(--farol-crimson);
+  padding: 1.25rem 1.5rem;
+  margin: 1.5rem 0;
+  border-radius: 0 4px 4px 0;
+  box-shadow: var(--shadow-subtle);
+}
+
+.modern-pullquote p {
+  font-family: var(--font-serif-headline);
+  font-size: 1.05rem;
+  font-style: italic;
+  font-weight: 600;
+  line-height: 1.5;
+  color: #1e293b;
+}
+
+/* Dropdown e Menu Mobile */
+#mobile-menu {
+  transition: max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+}
+
+/* Acessibilidade de Movimento Reduzido */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

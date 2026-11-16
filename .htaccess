@@ -1,0 +1,15 @@
+RewriteEngine On
+RewriteBase /o-farol/
+
+# Não reescrever se o arquivo ou diretório existir fisicamente
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# URLs amigáveis para Notícias: /noticia/slug-da-materia -> /noticia.php?slug=slug-da-materia
+RewriteRule ^noticia/([a-zA-Z0-9_-]+)/?$ noticia.php?slug=$1 [L,QSA]
+
+# URLs amigáveis para Categorias: /categoria/slug-da-categoria -> /categoria.php?slug=slug-da-categoria
+RewriteRule ^categoria/([a-zA-Z0-9_-]+)/?$ categoria.php?slug=$1 [L,QSA]
+
+# Prevenção de listagem de diretórios
+Options -Indexes

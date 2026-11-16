@@ -1,0 +1,29 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #f5f3ec;
+    color: #111827;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, .font-editorial {
+    font-family: 'Playfair Display', Georgia, serif;
+  }
+}
+
+/* Customizações refinadas de jornal */
+.newspaper-border {
+  border: 1px solid #e2ded5;
+}
+
+.newspaper-divider {
+  border-bottom: 2px solid #111827;
+}
+
+.newspaper-divider-thin {
+  border-bottom: 1px solid #e2ded5;
+}

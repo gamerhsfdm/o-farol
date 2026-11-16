@@ -1,0 +1,191 @@
+/* ========================================================
+   O FAROL - CMS Design System Fiel às Imagens Enviadas
+   Sidebar Verde-Petróleo Escuro (#0e2f33) + Header Branco
+   Cards Brancos Arredondados com Bordas Suaves e Sombra Leve
+   ======================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&display=swap');
+
+:root {
+  --admin-sidebar-bg: #0e2f33;      /* Verde petróleo escuro elegante do sidebar */
+  --admin-sidebar-hover: #153c41;
+  --admin-sidebar-text: #a0bec1;
+  --admin-sidebar-active-bg: #ffffff;
+  --admin-sidebar-active-text: #0e2f33;
+  --admin-body-bg: #fafaf8;         /* Bege claríssimo quase branco do fundo */
+  --admin-card-bg: #ffffff;
+  --admin-border: #f0eee9;
+  --admin-border-dark: #e5e3dc;
+  --admin-red: #c0262d;             /* Vermelho editorial dos botões de ação */
+  --admin-red-hover: #a11c22;
+  --admin-tag-red: #fff1f2;
+  --admin-tag-red-text: #e11d48;
+}
+
+body {
+  background-color: var(--admin-body-bg);
+  color: #1f2937;
+  font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tipografia de manchetes nas telas administrativas */
+.font-editorial-heading {
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+/* Sidebar Estilo Fiel */
+.admin-sidebar {
+  width: 250px;
+  background-color: var(--admin-sidebar-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 40;
+  overflow-y: auto;
+}
+
+.admin-sidebar-group-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #55878d;
+  text-transform: uppercase;
+  padding: 14px 20px 6px 20px;
+}
+
+.admin-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  margin: 2px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #b7d5d8;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.admin-nav-item:hover {
+  background-color: var(--admin-sidebar-hover);
+  color: #ffffff;
+}
+
+.admin-nav-item.active {
+  background-color: var(--admin-sidebar-active-bg);
+  color: var(--admin-sidebar-active-text);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.admin-nav-item.active svg {
+  stroke: var(--admin-sidebar-active-text);
+}
+
+/* Botão Vermelho de Ação Principal (ex: + Nova Notícia, Publicar) */
+.btn-admin-red {
+  background-color: var(--admin-red);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-admin-red:hover {
+  background-color: var(--admin-red-hover);
+}
+
+/* Cards Brancos com visual limpo e arredondado */
+.admin-card {
+  background: #ffffff;
+  border: 1px solid #f0eee9;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+/* Abas de Filtros de Notícias (ex: Todas 128, Publicadas 94, Rascunhos 18...) */
+.admin-pill-tab {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #6b7280;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.admin-pill-tab:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.admin-pill-tab.active {
+  background-color: #fee2e2;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* Badges de Status (Publicada verde claro, Rascunho cinza, Em revisão amarelo) */
+.badge-status {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.badge-status-published {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.badge-status-review {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.badge-status-draft {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.badge-status-scheduled {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+/* Input de busca no topo e tabelas */
+.admin-search-input {
+  background-color: #fafaf8;
+  border: 1px solid #e5e3dc;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.admin-search-input:focus {
+  background-color: #ffffff;
+  border-color: #0e2f33;
+}
