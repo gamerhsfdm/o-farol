@@ -1,6 +1,7 @@
 <?php
 /**
- * O FAROL - Formulário Moderno de Sugestão e Envio de Pautas Estudantis
+ * O FAROL - Formulário Editorial Moderno de Sugestão e Envio de Pautas Estudantis
+ * Conectado diretamente com a tabela pautas_sugestoes e com o painel admin/pautas.php
  */
 declare(strict_types=1);
 require_once __DIR__ . '/includes/functions.php';
@@ -20,20 +21,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $tipo = $_POST['tipo_sugestao'] ?? 'reportagem';
         $titulo = trim($_POST['titulo_sugestao'] ?? '');
         $descricao = trim($_POST['descricao'] ?? '');
+        $justificativa = trim($_POST['justificativa'] ?? '');
 
         if (empty($nome) || empty($email) || empty($turma) || empty($titulo) || empty($descricao)) {
-            $erro = 'Por favor, preencha todos os campos obrigatórios.';
+            $erro = 'Por favor, preencha todos os campos obrigatórios (*).';
         } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
             $erro = 'Informe um endereço de e-mail institucional válido.';
-        } elseif (!$pdo) {
-            $erro = 'Banco de dados inacessível no momento.';
         } else {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO pautas_sugestoes (nome_estudante, email, turma_curso, tipo_sugestao, titulo_sugestao, descricao) VALUES (?, ?, ?, ?, ?, ?)");
-                $stmt->execute([$nome, $email, $turma, $tipo, $titulo, $descricao]);
+            // Se houver justificativa preenchida pelo aluno, anexa na descrição formatada
+            $descricaoCompleta = $descricao;
+            if (!empty($justificativa)) {
+                $descricaoCompleta .= "\n\n[POR QUE ESSA PAUTA É IMPORTANTE?]\n" . $justificativa;
+            }
+
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO pautas_sugestoes (nome_estudante, email, turma_curso, tipo_sugestao, titulo_sugestao, descricao, status, criado_em) VALUES (?, ?, ?, ?, ?, ?, 'pendente', NOW())");
+                    $stmt->execute([$nome, $email, $turma, $tipo, $titulo, $descricaoCompleta]);
+                    $sucesso = true;
+                } catch (Exception $e) {
+                    $erro = 'Erro ao registrar pauta: ' . $e->getMessage();
+                }
+            } else {
+                // Modo demonstração
                 $sucesso = true;
-            } catch (Exception $e) {
-                $erro = 'Erro ao registrar pauta: ' . $e->getMessage();
             }
         }
     }
@@ -43,83 +54,114 @@ $page_title = "Envie sua Pauta ou Sugestão";
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<main class="container-farol py-12">
-  <div class="max-w-2xl mx-auto editorial-card p-6 sm:p-10 bg-white">
+<main class="container-farol py-10 sm:py-14">
+  <div class="max-w-3xl mx-auto editorial-card p-6 sm:p-10 bg-white border border-[#e6e3da] shadow-sm">
     
-    <div class="border-b-2 border-[#111827] pb-4 mb-6">
-      <span class="editorial-badge badge-crimson text-[9px] mb-2">CANAL DE PARTICIPAÇÃO ESTUDANTIL</span>
-      <h1 class="text-3xl sm:text-4xl font-headline font-extrabold text-[#111827] mt-1">
-        Envie sua Pauta ou Sugestão
+    <div class="border-b-2 border-[#111827] pb-5 mb-8">
+      <div class="flex items-center gap-2 mb-2">
+        <span class="editorial-badge badge-crimson text-[9px]">PARTICIPAÇÃO DISCENTE</span>
+        <span class="text-xs text-gray-500 font-sans uppercase tracking-wider">CANAL ABERTO DE REDAÇÃO</span>
+      </div>
+      <h1 class="text-3xl sm:text-4xl font-headline font-bold text-[#111827] leading-tight">
+        Tem uma pauta, história ou projeto científico?
       </h1>
-      <p class="text-xs sm:text-sm text-gray-600 font-sans mt-2 leading-relaxed">
-        Você tem uma boa história sobre sua turma, um projeto integrador relevante, uma iniciativa cultural ou um resultado esportivo? Compartilhe com os repórteres de O Farol!
+      <p class="text-xs sm:text-sm text-gray-600 font-sans mt-2.5 leading-relaxed">
+        A redação de <strong>O Farol</strong> é feita por e para os estudantes do Sesc-Senac. Conte para os nossos repórteres o que está acontecendo na sua turma, oficina ou laboratório.
       </p>
     </div>
 
     <?php if ($sucesso): ?>
-      <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-8 rounded text-center">
-        <svg class="w-14 h-14 text-emerald-600 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-        <h3 class="text-xl font-headline font-bold text-gray-900 mb-2">Pauta Recebida pela Redação!</h3>
-        <p class="text-xs sm:text-sm text-gray-600 mb-6 leading-relaxed max-w-lg mx-auto">
-          Nossa equipe editorial discente analisará sua proposta na próxima reunião de pauta. Caso selecionada, um repórter entrará em contato pelo seu e-mail institucional.
+      <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 p-8 rounded-lg text-center space-y-4">
+        <div class="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold">
+          ✓
+        </div>
+        <h3 class="text-2xl font-headline font-bold text-gray-900">Pauta Enviada com Sucesso!</h3>
+        <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto">
+          Nossa equipe editorial discente recebeu sua sugestão. Ela será avaliada na próxima reunião de pauta e poderá virar reportagem na capa do jornal!
         </p>
-        <a href="<?= BASE_URL ?>/index.php" class="btn-editorial-primary">
-          Voltar à Capa do Jornal
-        </a>
+        <div class="pt-4 flex flex-wrap justify-center gap-3">
+          <a href="<?= BASE_URL ?>/index.php" class="btn-editorial-primary py-2.5 px-6 text-xs">
+            Voltar à Capa do Jornal
+          </a>
+          <a href="<?= BASE_URL ?>/enviar-pauta.php" class="border border-gray-300 rounded px-5 py-2.5 text-xs text-gray-700 bg-white hover:bg-gray-50">
+            Enviar Outra Ideia
+          </a>
+        </div>
       </div>
     <?php else: ?>
 
       <?php if (!empty($erro)): ?>
-        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-xs mb-6">
-          <?= e($erro) ?>
+        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded text-xs mb-6 flex items-center gap-2">
+          <span>⚠️</span>
+          <span><?= e($erro) ?></span>
         </div>
       <?php endif; ?>
 
-      <form action="<?= BASE_URL ?>/enviar-pauta.php" method="POST" class="space-y-5">
+      <form action="<?= BASE_URL ?>/enviar-pauta.php" method="POST" class="space-y-6">
         <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
+        <!-- Identificação do Estudante -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Seu Nome Completo *</label>
-            <input type="text" name="nome_estudante" required class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
+            <input type="text" name="nome_estudante" required placeholder="Ex: Mariana Alves" 
+                   value="<?= e($_POST['nome_estudante'] ?? '') ?>"
+                   class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
           </div>
           <div>
             <label class="block text-xs font-bold text-gray-700 uppercase mb-1">E-mail Institucional *</label>
-            <input type="email" name="email" required placeholder="exemplo@aluno.sescsenac.edu.br" class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
+            <input type="email" name="email" required placeholder="mariana.alves@aluno.sescsenac.edu.br" 
+                   value="<?= e($_POST['email'] ?? '') ?>"
+                   class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Sua Turma / Curso Técnico *</label>
-            <input type="text" name="turma_curso" required placeholder="Ex: 3º Ano Técnico em Informática" class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Turma / Série / Curso *</label>
+            <input type="text" name="turma_curso" required placeholder="Ex: 2º ano A — Técnico em Informática" 
+                   value="<?= e($_POST['turma_curso'] ?? '') ?>"
+                   class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
           </div>
           <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Tipo de Pauta *</label>
-            <select name="tipo_sugestao" class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
-              <option value="reportagem">Reportagem Geral</option>
-              <option value="projeto_cientifico">Projeto Científico / Integrador</option>
-              <option value="evento">Evento Cultural / Feira</option>
-              <option value="resenha">Resenha Literária / Crítica</option>
-              <option value="esporte">Jogos Interclasses / Torneio</option>
-              <option value="outro">Outro assunto</option>
+            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Editoria / Tema Sugerido *</label>
+            <select name="tipo_sugestao" class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
+              <option value="projeto_cientifico">Ciência e Prática Técnica</option>
+              <option value="reportagem">Cultura e Empreendedorismo</option>
+              <option value="esporte">Jogos Escolares Interclasses</option>
+              <option value="resenha">Clube do Livro / Literatura</option>
+              <option value="evento">Feira do Conhecimento / FECCI / SBPC</option>
+              <option value="outro">Cotidiano Escolar / Comunidade</option>
             </select>
           </div>
         </div>
 
+        <!-- Conteúdo da Sugestão -->
         <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Título Resumido da Pauta *</label>
-          <input type="text" name="titulo_sugestao" required placeholder="Ex: Alunos desenvolvem sistema de irrigação automatizado" class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Ideia ou Título Proposto *</label>
+          <input type="text" name="titulo_sugestao" required placeholder="Ex: Uma horta comunitária para nossa escola" 
+                 value="<?= e($_POST['titulo_sugestao'] ?? '') ?>"
+                 class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]">
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Descrição Detalhada do Fato / Pauta *</label>
-          <textarea name="descricao" rows="5" required placeholder="Explique o que aconteceu ou vai acontecer, quem são os envolvidos, por que o assunto é relevante para o jornal..." class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#0f4c5c]"></textarea>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Descrição da Sugestão *</label>
+          <textarea name="descricao" rows="4" required placeholder="Conte em detalhes: o que aconteceu ou vai acontecer? Quem são as pessoas envolvidas? Onde e quando?" 
+                    class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]"><?= e($_POST['descricao'] ?? '') ?></textarea>
         </div>
 
-        <button type="submit" class="w-full btn-editorial-primary justify-center py-3 text-xs font-bold shadow">
-          Enviar Pauta para a Redação
-        </button>
+        <div>
+          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Por que essa pauta é importante para a escola?</label>
+          <textarea name="justificativa" rows="2" placeholder="Explique por que os outros estudantes e a comunidade escolar vão se interessar por esse assunto..." 
+                    class="w-full border border-gray-300 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0f4c5c]"><?= e($_POST['justificativa'] ?? '') ?></textarea>
+        </div>
+
+        <div class="pt-3 border-t border-gray-100 flex items-center justify-between">
+          <span class="text-[11px] text-gray-400">Todos os dados são protegidos e enviados à redação.</span>
+          <button type="submit" class="btn-editorial-primary py-3 px-8 text-xs font-bold shadow-md">
+            Enviar Pauta para a Redação →
+          </button>
+        </div>
       </form>
 
     <?php endif; ?>

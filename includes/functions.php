@@ -83,7 +83,19 @@ function get_site_settings(): array {
         'site_descricao' => 'Órgão informativo laboratorial do Centro Integrado de Ensino Médio e Técnico.',
         'banner_chamada_titulo' => 'Tem uma história, projeto científico ou evento na sua turma?',
         'banner_chamada_texto' => 'A redação de "O Farol" é feita por e para os estudantes. Envie sua sugestão de pauta, resenha de livro ou resultado esportivo para os nossos repórteres.',
-        'banner_chamada_botao' => 'ENVIE SUA PAUTA / SUGESTÃO'
+        'banner_chamada_botao' => 'ENVIE SUA PAUTA / SUGESTÃO',
+        'modulo_cabecalho' => '1',
+        'modulo_manchete' => '1',
+        'modulo_destaques' => '1',
+        'modulo_ciencia' => '1',
+        'modulo_jogos' => '1',
+        'modulo_cultura' => '1',
+        'modulo_opiniao' => '1',
+        'modulo_flagrantes' => '1',
+        'modulo_clube_livro' => '1',
+        'modulo_processos' => '0',
+        'modulo_enquete' => '1',
+        'modulo_banner_pauta' => '1'
     ];
 
     $settings = array_merge($defaults, $settings);

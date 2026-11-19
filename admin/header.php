@@ -115,6 +115,11 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? 'dashboard.php');
       <!-- 4. SISTEMA & AUDITORIA -->
       <div class="admin-sidebar-group-title mt-2">SISTEMA</div>
 
+      <a href="<?= BASE_URL ?>/admin/users.php" class="admin-nav-item <?= $current_page === 'users.php' ? 'active' : '' ?>">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        <span>Equipe e permissões</span>
+      </a>
+
       <a href="<?= BASE_URL ?>/admin/settings.php" class="admin-nav-item <?= $current_page === 'settings.php' ? 'active' : '' ?>">
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
         <span>Configurações gerais</span>
@@ -133,20 +138,20 @@ $current_page = basename($_SERVER['PHP_SELF'] ?? 'dashboard.php');
       </a>
 
       <!-- Card do Usuário Logado -->
-      <div class="flex items-center justify-between pt-1">
+      <a href="<?= BASE_URL ?>/admin/perfil.php" title="Editar meu perfil" class="flex items-center justify-between pt-1 group text-decoration-none">
         <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-full bg-[#e6ceb5] text-[#78350f] font-bold text-[11px] flex items-center justify-center">
-            MC
+          <div class="w-7 h-7 rounded-full bg-[#e6ceb5] text-[#78350f] font-bold text-[11px] flex items-center justify-center group-hover:ring-2 group-hover:ring-white transition-all">
+            <?= strtoupper(substr($user['nome'] ?? 'MC', 0, 2)) ?>
           </div>
           <div>
-            <div class="text-white text-xs font-semibold leading-tight"><?= e($user['nome'] ?: 'Marina Costa') ?></div>
+            <div class="text-white text-xs font-semibold leading-tight group-hover:text-amber-200"><?= e($user['nome'] ?: 'Marina Costa') ?></div>
             <div class="text-[9.5px] text-[#55878d] leading-none"><?= e(ucfirst($user['papel'])) ?></div>
           </div>
         </div>
         <a href="<?= BASE_URL ?>/admin/logout.php" title="Sair" class="text-[#55878d] hover:text-white p-1">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
         </a>
-      </div>
+      </a>
     </div>
 
   </aside>

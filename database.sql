@@ -266,7 +266,20 @@ CREATE TABLE `configuracoes` (
   `atualizado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 16. LOGS DE AUDITORIA ADMINISTRATIVA
+-- 16. COMENTÁRIOS E MODERAÇÃO DAS REPORTAGENS
+CREATE TABLE IF NOT EXISTS `comentarios` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `noticia_id` INT NOT NULL,
+  `nome_autor` VARCHAR(120) NOT NULL,
+  `email_autor` VARCHAR(150) NOT NULL,
+  `turma_autor` VARCHAR(80) NULL,
+  `conteudo` TEXT NOT NULL,
+  `status` ENUM('pendente', 'aprovado', 'rejeitado') NOT NULL DEFAULT 'pendente',
+  `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`noticia_id`) REFERENCES `noticias`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 17. LOGS DE AUDITORIA ADMINISTRATIVA
 CREATE TABLE `logs_auditoria` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `usuario_id` INT NULL,

@@ -8,21 +8,49 @@ $admin_title = "Página inicial";
 $admin_breadcrumb = "Página inicial";
 require_once __DIR__ . '/header.php';
 
-// Módulos exatos da imagem 7
-$modulos = [
-    ['nome' => 'Cabeçalho institucional', 'desc' => 'Logo, menu e pesquisa', 'ativo' => true],
-    ['nome' => 'Manchete principal', 'desc' => 'Jovens cientistas apresentam soluções...', 'ativo' => true, 'destaque' => true],
-    ['nome' => 'Notícias em destaque', 'desc' => 'Conteúdo automático da editoria', 'ativo' => true],
-    ['nome' => 'Ciência e Prática Técnica', 'desc' => 'Conteúdo automático da editoria', 'ativo' => true],
-    ['nome' => 'Jogos Escolares', 'desc' => 'Conteúdo automático da editoria', 'ativo' => true],
-    ['nome' => 'Cultura e Empreendedorismo', 'desc' => 'Conteúdo automático da editoria', 'ativo' => true],
-    ['nome' => 'Clube do Livro', 'desc' => 'Conteúdo automático da editoria', 'ativo' => true],
-    ['nome' => 'Processos Seletivos', 'desc' => 'Conteúdo automático da editoria', 'ativo' => false],
-    ['nome' => 'Enquetes', 'desc' => 'Enquete da semana', 'ativo' => true]
+$pdo = getDBConnection();
+$mensagem = '';
+$erro = '';
+
+// Definição dos módulos gerenciáveis da Homepage
+$modulos_definicao = [
+    'modulo_cabecalho'    => ['nome' => 'Cabeçalho institucional', 'desc' => 'Logo, menu e pesquisa', 'destaque' => false],
+    'modulo_manchete'     => ['nome' => 'Manchete principal', 'desc' => 'Jovens cientistas apresentam soluções...', 'destaque' => true],
+    'modulo_destaques'    => ['nome' => 'Notícias em destaque', 'desc' => 'Conteúdo automático da editoria', 'destaque' => false],
+    'modulo_ciencia'      => ['nome' => 'Ciência e Prática Técnica', 'desc' => 'Conteúdo automático da editoria', 'destaque' => false],
+    'modulo_jogos'        => ['nome' => 'Jogos Escolares', 'desc' => 'Conteúdo automático da editoria', 'destaque' => false],
+    'modulo_cultura'      => ['nome' => 'Cultura e Empreendedorismo', 'desc' => 'Conteúdo automático da editoria', 'destaque' => false],
+    'modulo_opiniao'      => ['nome' => 'Coluna de Opinião & Flagrantes', 'desc' => 'Conteúdo reflexivo e visual da semana', 'destaque' => false],
+    'modulo_clube_livro'  => ['nome' => 'Clube do Livro', 'desc' => 'Obra do mês e resenhas na sidebar', 'destaque' => false],
+    'modulo_processos'    => ['nome' => 'Processos Seletivos', 'desc' => 'Calendário e prazos acadêmicos', 'destaque' => false],
+    'modulo_enquete'      => ['nome' => 'Enquetes', 'desc' => 'Voz do Aluno e participação da comunidade', 'destaque' => false],
+    'modulo_banner_pauta' => ['nome' => 'Banner de Envio de Pautas', 'desc' => 'Faixa inferior de incentivo à participação', 'destaque' => false]
 ];
+
+// Salvar alterações de ativação/desativação de módulos
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['salvar_homepage'])) {
+    if ($pdo) {
+        try {
+            $stmt = $pdo->prepare("INSERT INTO configuracoes (chave, valor) VALUES (?, ?) ON DUPLICATE KEY UPDATE valor = VALUES(valor)");
+            foreach (array_keys($modulos_definicao) as $chave) {
+                $valor = isset($_POST[$chave]) ? '1' : '0';
+                $stmt->execute([$chave, $valor]);
+            }
+            $mensagem = "Estrutura da página inicial atualizada e publicada com sucesso!";
+        } catch (Exception $e) {
+            $erro = "Erro ao salvar configurações: " . $e->getMessage();
+        }
+    } else {
+        $mensagem = "Alterações registradas com sucesso no modo demonstração!";
+    }
+}
+
+// Recarrega configurações atualizadas
+$settings = get_site_settings();
 ?>
 
 <!-- TOPO: TÍTULO + PRÉ-VISUALIZAR + PUBLICAR ALTERAÇÕES -->
+<form method="POST" action="">
 <div class="flex items-center justify-between mb-6">
   <div>
     <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / ADMINISTRAÇÃO</div>
@@ -30,15 +58,29 @@ $modulos = [
     <p class="text-xs text-gray-500 mt-1">Defina a composição e a ordem dos módulos do jornal.</p>
   </div>
   <div class="flex items-center gap-2">
-    <a href="<?= BASE_URL ?>/index.php" target="_blank" class="border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-1.5">
+    <a href="<?= BASE_URL ?>/index.php" target="_blank" class="border border-gray-200 rounded px-3 py-1.5 text-xs text-gray-700 bg-white hover:bg-gray-50 flex items-center gap-1.5 transition-colors">
       <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
       Pré-visualizar
     </a>
-    <button class="btn-admin-red">
+    <button type="submit" name="salvar_homepage" value="1" class="btn-admin-red">
       Publicar alterações
     </button>
   </div>
 </div>
+
+<?php if ($mensagem): ?>
+  <div class="p-3 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center justify-between">
+    <span>✓ <?= e($mensagem) ?></span>
+    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 font-bold">×</button>
+  </div>
+<?php endif; ?>
+
+<?php if ($erro): ?>
+  <div class="p-3 mb-6 bg-red-50 border border-red-200 text-red-800 text-xs rounded flex items-center justify-between">
+    <span>⚠️ <?= e($erro) ?></span>
+    <button type="button" onclick="this.parentElement.remove()" class="text-red-700 font-bold">×</button>
+  </div>
+<?php endif; ?>
 
 <!-- GRADE COM ESTRUTURA DA PÁGINA (ESQ) + PRÉ-VISUALIZAÇÃO (DIR) IDÊNTICO À IMAGEM 7 -->
 <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -54,10 +96,12 @@ $modulos = [
     </div>
 
     <div class="space-y-2">
-      <?php foreach ($modulos as $mod): ?>
+      <?php foreach ($modulos_definicao as $chave => $mod): 
+        $ativo = !empty($settings[$chave]);
+      ?>
         <div class="p-3 rounded-lg border flex items-center justify-between text-xs transition-colors <?= !empty($mod['destaque']) ? 'bg-[#fff5f5] border-[#fecaca]' : 'bg-[#fafaf8] border-gray-200' ?>">
           <div class="flex items-center gap-2.5">
-            <span class="text-gray-400 cursor-move">≡</span>
+            <span class="text-gray-400 cursor-move select-none">≡</span>
             <div>
               <div class="font-bold text-gray-900"><?= e($mod['nome']) ?></div>
               <div class="text-[9.5px] text-gray-400 truncate max-w-[180px]"><?= e($mod['desc']) ?></div>
@@ -67,10 +111,10 @@ $modulos = [
           <div class="flex items-center gap-2">
             <!-- Toggle Switch -->
             <label class="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" <?= $mod['ativo'] ? 'checked' : '' ?> class="sr-only peer">
+              <input type="checkbox" name="<?= e($chave) ?>" value="1" <?= $ativo ? 'checked' : '' ?> class="sr-only peer">
               <div class="w-8 h-4 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-[#0e2f33]"></div>
             </label>
-            <button class="text-gray-400 hover:text-black text-xs">⚙</button>
+            <button type="button" class="text-gray-400 hover:text-black text-xs">⚙</button>
           </div>
         </div>
       <?php endforeach; ?>
@@ -106,16 +150,16 @@ $modulos = [
       <!-- Hero com Alunos e Bloco Verde Escuro -->
       <div class="grid grid-cols-12 bg-white">
         <div class="col-span-7">
-          <img src="<?= BASE_URL ?>/assets/images/ciencia-lab.jpg" class="w-full h-48 object-cover">
+          <img src="<?= BASE_URL ?>/assets/images/hero-premiacao.jpg" class="w-full h-48 object-cover">
         </div>
         <div class="col-span-5 bg-[#0e2f33] p-4 text-white flex flex-col justify-between">
           <div>
-            <span class="text-[8px] font-bold text-amber-400 uppercase tracking-wider block mb-1">CLUBE DE CIÊNCIAS</span>
+            <span class="text-[8px] font-bold text-amber-400 uppercase tracking-wider block mb-1">FECCI &amp; SBPC JOVEM</span>
             <h4 class="text-sm font-editorial-heading font-bold leading-tight">
-              Jovens cientistas apresentam soluções para uma escola mais sustentável
+              Alunos do Sesc-Senac conquistam premiação nacional com projetos
             </h4>
             <p class="text-[9px] text-gray-300 mt-2 line-clamp-2">
-              Projetos desenvolvidos pelos estudantes unem criatividade, pesquisa e compromisso.
+              Delegação discente representou a instituição na etapa nacional em Brasília.
             </p>
           </div>
         </div>
@@ -126,16 +170,16 @@ $modulos = [
         <span class="text-[9px] font-bold text-gray-700 uppercase tracking-wider block mb-2">DESTAQUES DA SEMANA</span>
         <div class="grid grid-cols-3 gap-2 text-[8.5px]">
           <div>
-            <img src="<?= BASE_URL ?>/assets/images/hero-premiacao.jpg" class="w-full h-14 object-cover rounded mb-1">
-            <span class="font-bold text-gray-800 line-clamp-1">Jogos Escolares reúnem mais de 240 estudantes</span>
-          </div>
-          <div>
-            <img src="<?= BASE_URL ?>/assets/images/flagrante-semana.jpg" class="w-full h-14 object-cover rounded mb-1">
-            <span class="font-bold text-gray-800 line-clamp-1">Clube do Livro debate literatura brasileira</span>
+            <img src="<?= BASE_URL ?>/assets/images/ciencia-lab.jpg" class="w-full h-14 object-cover rounded mb-1">
+            <span class="font-bold text-gray-800 line-clamp-1">Ciência &amp; Prática Técnica</span>
           </div>
           <div>
             <img src="<?= BASE_URL ?>/assets/images/livro-torto-arado.jpg" class="w-full h-14 object-cover rounded mb-1">
-            <span class="font-bold text-gray-800 line-clamp-1">Feira Cultural celebra saberes</span>
+            <span class="font-bold text-gray-800 line-clamp-1">Clube do Livro: Torto Arado</span>
+          </div>
+          <div>
+            <img src="<?= BASE_URL ?>/assets/images/flagrante-semana.jpg" class="w-full h-14 object-cover rounded mb-1">
+            <span class="font-bold text-gray-800 line-clamp-1">Flagrantes da Semana</span>
           </div>
         </div>
       </div>
@@ -144,5 +188,6 @@ $modulos = [
   </div>
 
 </div>
+</form>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

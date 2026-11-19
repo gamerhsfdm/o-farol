@@ -91,7 +91,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       </div>
 
       <div>
-        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Senha</label>
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-bold text-gray-700 uppercase">Senha</label>
+          <a href="<?= BASE_URL ?>/admin/registro.php" class="text-[11px] text-[#c0262d] hover:underline font-bold">
+            Criar conta
+          </a>
+        </div>
         <input type="password" name="senha" required placeholder="••••••••" 
                class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#164e63]">
       </div>
