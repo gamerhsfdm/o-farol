@@ -5,6 +5,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/ui.php';
 
 $erro = '';
 $sucesso = '';
@@ -62,84 +63,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Criar Conta — O FAROL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/main.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin-fiel.css">
 </head>
-<body class="bg-[#fafaf8] min-h-screen flex items-center justify-center p-4">
-
-  <div class="max-w-md w-full admin-card p-8 shadow-sm">
-    
-    <!-- Cabeçalho do Card -->
-    <div class="text-center mb-6">
-      <div class="w-10 h-10 rounded-lg bg-[#c0262d] text-white font-serif font-black text-xl flex items-center justify-center mx-auto mb-2 shadow-sm">
-        F
+<body class="admin auth">
+  <div class="auth-shell">
+    <aside class="auth-aside">
+      <div class="row">
+        <span class="brand-mark">F</span>
+        <div><div class="brand-name">O FAROL</div><div class="brand-sub">Jornal escolar</div></div>
       </div>
-      <h1 class="text-2xl font-editorial-heading font-bold text-[#111827]">Criar Conta no CMS</h1>
-      <p class="text-xs text-gray-500 mt-1">Junte-se à equipe editorial de O FAROL</p>
-    </div>
-
-    <?php if (!empty($erro)): ?>
-      <div class="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded mb-4">
-        <?= e($erro) ?>
+      <div class="auth-aside__quote">
+        <h2>A redação do Farol em um só lugar.</h2>
+        <p>Escreva, revise e publique as reportagens da comunidade escolar com organização e segurança.</p>
       </div>
-    <?php endif; ?>
+      <div class="auth-aside__foot">Jornal Escolar Sesc-Senac · Gestão editorial</div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-card">
+        <div class="auth-brand-mobile">
+          <span class="brand-mark">F</span>
+          <div><div class="brand-name">O FAROL</div><div class="brand-sub">Jornal escolar</div></div>
+        </div>
+        <h1>Criar conta no CMS</h1>
+        <p class="auth-card__sub">Junte-se à equipe editorial de O FAROL. Novas contas entram como colaborador.</p>
 
-    <?php if (!empty($sucesso)): ?>
-      <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-4 rounded mb-4 text-center">
-        <p class="font-bold mb-3">✓ <?= $sucesso ?></p>
-        <a href="<?= BASE_URL ?>/admin/index.php" class="btn-admin-red inline-block text-xs py-2 px-4">
-          Ir para a tela de Login →
-        </a>
+        <?= ui_alerts('', (string)$erro) ?>
+
+        <?php if (!empty($sucesso)): ?>
+          <div class="alert alert--ok" role="status"><?= ui_icon('check-c') ?><div class="alert__text"><?= e(strip_tags((string)$sucesso)) ?></div></div>
+          <a href="<?= BASE_URL ?>/admin/index.php" class="btn btn--primary btn--block" style="height:44px">Ir para o login</a>
+        <?php else: ?>
+          <form action="<?= BASE_URL ?>/admin/registro.php" method="POST" class="stack stack--sm">
+            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+            <div class="field">
+              <label class="label" for="rg-nome">Nome completo *</label>
+              <input type="text" id="rg-nome" name="nome" required placeholder="Ex: Lucas Mendes" value="<?= e($_POST['nome'] ?? '') ?>" class="input">
+            </div>
+            <div class="field">
+              <label class="label" for="rg-email">E-mail institucional *</label>
+              <input type="email" id="rg-email" name="email" required placeholder="aluno@sescsenac.edu.br" value="<?= e($_POST['email'] ?? '') ?>" class="input">
+            </div>
+            <div class="form-grid">
+              <div class="field">
+                <label class="label" for="rg-senha">Senha *</label>
+                <input type="password" id="rg-senha" name="senha" required placeholder="Mínimo de 6 caracteres" autocomplete="new-password" class="input">
+              </div>
+              <div class="field">
+                <label class="label" for="rg-conf">Confirmar senha *</label>
+                <input type="password" id="rg-conf" name="senha_confirma" required placeholder="Repita a senha" autocomplete="new-password" class="input">
+              </div>
+            </div>
+            <button type="submit" class="btn btn--primary btn--block" style="height:44px">Criar minha conta</button>
+          </form>
+        <?php endif; ?>
+
+        <div class="auth-links">
+          <a href="<?= BASE_URL ?>/admin/index.php" class="link">Já tenho conta (login)</a>
+          <a href="<?= BASE_URL ?>/index.php" class="muted">← Ir para o site</a>
+        </div>
       </div>
-    <?php else: ?>
-
-      <form action="<?= BASE_URL ?>/admin/registro.php" method="POST" class="space-y-4">
-        <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nome Completo *</label>
-          <input type="text" name="nome" required placeholder="Ex: Lucas Mendes" 
-                 value="<?= e($_POST['nome'] ?? '') ?>"
-                 class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">E-mail Institucional *</label>
-          <input type="email" name="email" required placeholder="aluno@sescsenac.edu.br" 
-                 value="<?= e($_POST['email'] ?? '') ?>"
-                 class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Senha (Mínimo de 6 dígitos) *</label>
-          <input type="password" name="senha" required placeholder="••••••••" 
-                 class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-        </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Confirmar Senha *</label>
-          <input type="password" name="senha_confirma" required placeholder="••••••••" 
-                 class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-        </div>
-
-        <button type="submit" class="w-full btn-admin-red justify-center py-2.5 mt-2 shadow-sm font-bold text-xs uppercase tracking-wider">
-          Criar Minha Conta
-        </button>
-      </form>
-
-    <?php endif; ?>
-
-    <div class="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
-      <a href="<?= BASE_URL ?>/admin/index.php" class="text-[#0e2f33] hover:underline font-bold">
-        Já tenho conta (Login)
-      </a>
-      <a href="<?= BASE_URL ?>/index.php" class="text-gray-400 hover:text-black">
-        ← Ir para o site
-      </a>
-    </div>
-
+    </main>
   </div>
-
+<script>
+document.addEventListener('submit', function (e) {
+  var b = e.target.querySelector('button[type=submit]');
+  if (b && !e.defaultPrevented) { setTimeout(function () { b.classList.add('is-loading'); }, 0); }
+});
+</script>
 </body>
 </html>

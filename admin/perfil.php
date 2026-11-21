@@ -75,110 +75,69 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<div class="mb-6">
-  <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / CONFIGURAÇÕES PESSOAIS</div>
-  <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Meu perfil</h1>
-  <p class="text-xs text-gray-500 mt-1">Gerencie suas informações de acesso e credenciais de segurança.</p>
-</div>
+<?= ui_page_header('Meu perfil', 'Gerencie suas informações de acesso e credenciais de segurança.') ?>
 
-<?php if (!empty($sucesso)): ?>
-  <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-lg mb-6">
-    ✓ <?= $sucesso ?>
-  </div>
-<?php endif; ?>
+<?= ui_alerts(strip_tags((string)$sucesso), (string)$erro) ?>
 
-<?php if (!empty($erro)): ?>
-  <div class="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg mb-6">
-    ⚠ <?= e($erro) ?>
-  </div>
-<?php endif; ?>
+<div class="split" style="grid-template-columns: minmax(0, 1fr) 340px">
+  <form action="<?= BASE_URL ?>/admin/perfil.php" method="POST" class="card">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
 
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-  
-  <!-- Formulário Principal (8 Colunas) -->
-  <div class="lg:col-span-8 admin-card p-6">
-    <form action="<?= BASE_URL ?>/admin/perfil.php" method="POST" class="space-y-6">
-      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-
-      <div class="border-b border-gray-100 pb-4">
-        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-3">Dados de Identificação</h3>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Seu Nome *</label>
-            <input type="text" name="nome" required value="<?= e($currentUser['nome'] ?? '') ?>" 
-                   class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-          </div>
-
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Seu E-mail *</label>
-            <input type="email" name="email" required value="<?= e($currentUser['email'] ?? '') ?>" 
-                   class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-          </div>
+    <div class="form-section">
+      <div class="form-section__title">Dados de identificação</div>
+      <div class="form-section__sub">Como você aparece na equipe do jornal.</div>
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="pf-nome">Seu nome *</label>
+          <input type="text" id="pf-nome" name="nome" required value="<?= e($currentUser['nome'] ?? '') ?>" class="input">
         </div>
-      </div>
-
-      <div>
-        <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider mb-2">Alteração de Senha</h3>
-        <p class="text-[11px] text-gray-400 mb-4">Preencha os campos abaixo apenas se desejar modificar a sua senha atual.</p>
-
-        <div class="space-y-3">
-          <div>
-            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Senha Atual</label>
-            <input type="password" name="senha_atual" placeholder="••••••••" 
-                   class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nova Senha</label>
-              <input type="password" name="nova_senha" placeholder="Mínimo 6 dígitos" 
-                     class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-            </div>
-
-            <div>
-              <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Confirmar Nova Senha</label>
-              <input type="password" name="confirma_senha" placeholder="Repita a nova senha" 
-                     class="w-full border border-gray-200 rounded p-2.5 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-            </div>
-          </div>
+        <div class="field">
+          <label class="label" for="pf-email">Seu e-mail *</label>
+          <input type="email" id="pf-email" name="email" required value="<?= e($currentUser['email'] ?? '') ?>" class="input">
         </div>
-      </div>
-
-      <div class="pt-4 border-t border-gray-100 flex items-center justify-end">
-        <button type="submit" class="btn-admin-red">
-          Salvar Alterações do Perfil
-        </button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Cartão de Informações da Conta (4 Colunas) -->
-  <div class="lg:col-span-4 admin-card p-6 space-y-4">
-    <div class="text-center pb-4 border-b border-gray-100">
-      <div class="w-16 h-16 rounded-full bg-[#0e2f33] text-white font-bold text-xl flex items-center justify-center mx-auto mb-3 shadow-sm">
-        <?= strtoupper(substr($currentUser['nome'] ?? 'MC', 0, 2)) ?>
-      </div>
-      <h3 class="text-sm font-bold text-gray-900"><?= e($currentUser['nome'] ?? 'Usuário') ?></h3>
-      <span class="text-xs text-gray-500"><?= e($currentUser['email'] ?? '') ?></span>
-      <div class="mt-2">
-        <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <?= e(ucfirst($currentUser['papel'] ?? 'editor')) ?>
-        </span>
       </div>
     </div>
 
-    <div class="text-xs space-y-2 text-gray-500">
-      <div class="flex justify-between">
-        <span>Conta criada em:</span>
-        <span class="text-gray-800"><?= date('d/m/Y', strtotime($currentUser['criado_em'] ?? 'now')) ?></span>
-      </div>
-      <div class="flex justify-between">
-        <span>Último acesso:</span>
-        <span class="text-gray-800"><?= $currentUser['ultimo_login'] ? date('d/m/Y H:i', strtotime($currentUser['ultimo_login'])) : 'Sessão atual' ?></span>
+    <div class="form-section">
+      <div class="form-section__title">Alteração de senha</div>
+      <div class="form-section__sub">Preencha apenas se quiser trocar a senha atual.</div>
+      <div class="stack stack--sm">
+        <div class="field">
+          <label class="label" for="pf-atual">Senha atual</label>
+          <input type="password" id="pf-atual" name="senha_atual" placeholder="••••••••" autocomplete="current-password" class="input">
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label class="label" for="pf-nova">Nova senha</label>
+            <input type="password" id="pf-nova" name="nova_senha" placeholder="Mínimo de 6 caracteres" autocomplete="new-password" class="input">
+          </div>
+          <div class="field">
+            <label class="label" for="pf-conf">Confirmar nova senha</label>
+            <input type="password" id="pf-conf" name="confirma_senha" placeholder="Repita a nova senha" autocomplete="new-password" class="input">
+          </div>
+        </div>
       </div>
     </div>
-  </div>
 
+    <div class="card__foot" style="justify-content:flex-end">
+      <button type="submit" class="btn btn--primary">Salvar alterações do perfil</button>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card__body" style="text-align:center">
+      <span class="avatar avatar--lg"><?= e(ui_initials($currentUser['nome'] ?? '')) ?></span>
+      <h3 class="strong" style="font-size:16px;margin-top:14px"><?= e($currentUser['nome'] ?? 'Usuário') ?></h3>
+      <p class="muted text-sm"><?= e($currentUser['email'] ?? '') ?></p>
+      <div style="margin-top:12px"><?= ui_badge(ui_role_label($currentUser['papel'] ?? 'editor'), 'brand') ?></div>
+    </div>
+    <div class="card__body" style="border-top:1px solid var(--line)">
+      <dl class="kv" style="margin:0">
+        <div><span>Conta criada em</span><span><?= e(ui_date($currentUser['criado_em'] ?? null, false)) ?></span></div>
+        <div><span>Último acesso</span><span><?= !empty($currentUser['ultimo_login']) ? e(ui_date($currentUser['ultimo_login'])) : 'Sessão atual' ?></span></div>
+      </dl>
+    </div>
+  </div>
 </div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

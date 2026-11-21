@@ -1,7 +1,7 @@
 <?php
 /**
- * O FAROL - Gestão de Sugestões de Pautas Fiel à Imagem 9
- * Lista Master-Detail: Pautas Recebidas (Esq) + Detalhe com Informações e Botão "Transformar em reportagem" (Dir)
+ * O FAROL - Sugestões de Pautas
+ * Caixa de entrada (lista + detalhe) para avaliar ideias enviadas pela comunidade escolar.
  */
 declare(strict_types=1);
 $admin_title = "Sugestões de pautas";
@@ -11,6 +11,7 @@ require_once __DIR__ . '/header.php';
 $pdo = getDBConnection();
 $mensagem = '';
 $erro = '';
+$erro_carga = '';
 
 // 1. Ação: Transformar pauta em reportagem (Cria rascunho de notícia e abre o editor)
 if (isset($_GET['transformar_id']) && $pdo) {
@@ -120,184 +121,117 @@ if ($pdo) {
                 'aluno' => $nomeAluno,
                 'categoria' => $categoria,
                 'turma' => $turma,
-                'data' => date('d M, H:i', strtotime($p['criado_em'] ?? 'now')),
+                'data' => ui_date($p['criado_em'] ?? null),
                 'status' => $statusLabel,
                 'descricao' => $descExibida,
                 'justificativa' => $justificativa,
                 'ativo' => $idx === 0
             ];
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        $erro_carga = $e->getMessage();
+    }
 }
 
-// Fallback visual estrito à Imagem 9
-if (empty($pautas_lista)) {
-    $pautas_lista = [
-        ['id' => 1, 'sigla' => 'MA', 'titulo' => 'Uma horta comunitária para nossa escola', 'aluno' => 'Mariana Alves', 'categoria' => 'Meio ambiente', 'turma' => '2º ano A', 'data' => 'Hoje, 09:14', 'status' => 'Nova', 'descricao' => 'Acho que seria interessante produzir uma reportagem mostrando como uma horta comunitária pode envolver estudantes de diferentes turmas. Podemos entrevistar professores de Ciências e pesquisar exemplos de outras escolas.', 'justificativa' => 'Além de melhorar o espaço da escola, o projeto pode ensinar sobre alimentação saudável e sustentabilidade.', 'ativo' => true],
-        ['id' => 2, 'sigla' => 'JP', 'titulo' => 'Entrevista com ex-alunos empreendedores', 'aluno' => 'João Pedro', 'categoria' => 'Empreendedorismo', 'turma' => '3º ano B', 'data' => 'Ontem, 15:30', 'status' => 'Em análise', 'descricao' => 'Conectar os alunos atuais com trajetórias de sucesso de ex-alunos que abriram empresas na área de tecnologia e gastronomia.', 'justificativa' => 'Motivar as turmas do técnico com histórias práticas de sucesso no mercado de trabalho.', 'ativo' => false],
-        ['id' => 3, 'sigla' => 'LS', 'titulo' => 'Campeonato de xadrez entre turmas', 'aluno' => 'Laura Silva', 'categoria' => 'Jogos Escolares', 'turma' => '1º ano C', 'data' => '10 jun', 'status' => 'Aprovada', 'descricao' => 'A cobertura dos tabuleiros com os lances finais da competição que movimentou os intervalos da biblioteca.', 'justificativa' => 'Valorização dos esportes da mente na escola.', 'ativo' => false],
-        ['id' => 4, 'sigla' => 'PH', 'titulo' => 'Mais espaços de leitura no intervalo', 'aluno' => 'Pedro Henrique', 'categoria' => 'Clube do Livro', 'turma' => '2º ano B', 'data' => '08 jun', 'status' => 'Recusada', 'descricao' => 'Reportagem investigativa sobre o uso dos espaços de convivência e a necessidade de pufes e estantes abertas.', 'justificativa' => 'Fortalecimento da leitura fora da sala de aula.', 'ativo' => false]
-    ];
-}
 
 $pauta_selecionada = $pautas_lista[0] ?? null;
+$tons_pauta = ['Nova' => 'info', 'Em análise' => 'warn', 'Aprovada' => 'ok', 'Recusada' => 'bad'];
 ?>
 
-<!-- TOPO: TÍTULO DA PÁGINA -->
-<div class="mb-6">
-  <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / ADMINISTRAÇÃO</div>
-  <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Sugestões de pautas</h1>
-  <p class="text-xs text-gray-500 mt-1">Analise ideias enviadas pela comunidade escolar.</p>
-</div>
+<?= ui_page_header('Sugestões de pautas', 'Analise ideias enviadas pela comunidade escolar.') ?>
 
-<?php if ($mensagem): ?>
-  <div class="p-3 mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center justify-between">
-    <span>✓ <?= e($mensagem) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 font-bold">×</button>
+<?= ui_alerts($mensagem, $erro) ?>
+<?php if ($erro_carga !== ''): ?><?= ui_load_error($erro_carga) ?><?php endif; ?>
+
+<nav class="tabs" aria-label="Filtrar sugestões">
+  <a href="?status=todas" class="tab <?= $filtro_status === 'todas' ? 'is-active' : '' ?>">Todas</a>
+  <a href="?status=novas" class="tab <?= $filtro_status === 'novas' ? 'is-active' : '' ?>">Novas</a>
+  <a href="?status=analise" class="tab <?= $filtro_status === 'analise' ? 'is-active' : '' ?>">Em análise</a>
+</nav>
+
+<?php if (empty($pautas_lista)): ?>
+  <div class="card">
+    <?= ui_empty('inbox', 'Nenhuma sugestão por aqui', $filtro_status === 'todas' ? 'Quando os estudantes enviarem pautas pelo portal, elas aparecerão nesta caixa de entrada.' : 'Nenhuma sugestão com este status.') ?>
   </div>
-<?php endif; ?>
-
-<?php if ($erro): ?>
-  <div class="p-3 mb-4 bg-red-50 border border-red-200 text-red-800 text-xs rounded flex items-center justify-between">
-    <span>⚠️ <?= e($erro) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-red-700 font-bold">×</button>
-  </div>
-<?php endif; ?>
-
-<!-- ABAS DE FILTROS IDÊNTICAS À IMAGEM 9 -->
-<div class="flex gap-2 mb-4">
-  <a href="?status=todas" class="admin-pill-tab <?= $filtro_status === 'todas' ? 'active' : '' ?>">Todas</a>
-  <a href="?status=novas" class="admin-pill-tab <?= $filtro_status === 'novas' ? 'active' : '' ?>">Novas</a>
-  <a href="?status=analise" class="admin-pill-tab <?= $filtro_status === 'analise' ? 'active' : '' ?>">Em análise</a>
-</div>
-
-<!-- GRADE MASTER-DETAIL (LISTA À ESQUERDA + DETALHE À DIREITA) IDÊNTICO À IMAGEM 9 -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-  
-  <!-- Lista de Pautas (5 Colunas) -->
-  <div class="lg:col-span-5 space-y-2">
-    <?php foreach ($pautas_lista as $p): ?>
-      <div onclick="exibirPauta(<?= htmlspecialchars(json_encode($p), ENT_QUOTES, 'UTF-8') ?>)" 
-           class="admin-card p-3.5 cursor-pointer transition-colors <?= $p['ativo'] ? 'border-l-4 border-l-[#c0262d] bg-[#fbfbf9]' : 'hover:bg-white' ?> pauta-item" id="pauta-item-<?= $p['id'] ?>">
-        <div class="flex items-start gap-3">
-          <div class="w-8 h-8 rounded-full bg-[#f3f4f6] text-gray-600 font-bold text-xs flex items-center justify-center flex-shrink-0">
-            <?= e($p['sigla']) ?>
-          </div>
-          <div class="flex-1">
-            <div class="flex items-center justify-between">
-              <h4 class="text-xs font-bold text-gray-900 leading-snug"><?= e($p['titulo']) ?></h4>
-              <span class="text-[9px] text-gray-400"><?= e($p['data']) ?></span>
-            </div>
-            <div class="text-[10px] text-gray-500 mt-0.5"><?= e($p['aluno']) ?> • <?= e($p['categoria']) ?></div>
-            <div class="mt-2">
-              <span class="text-[9px] font-semibold px-2 py-0.5 rounded <?= $p['status'] === 'Nova' ? 'bg-emerald-50 text-emerald-700' : ($p['status'] === 'Em análise' ? 'bg-amber-50 text-amber-700' : 'bg-gray-100 text-gray-600') ?>">
-                <?= e($p['status']) ?>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    <?php endforeach; ?>
-  </div>
-
-  <!-- Detalhe da Pauta (7 Colunas) IDÊNTICO À IMAGEM 9 -->
-  <?php if ($pauta_selecionada): ?>
-    <div class="lg:col-span-7 admin-card p-6 flex flex-col justify-between min-h-[440px]" id="painel-detalhe">
-      <div>
-        
-        <!-- Topo do Detalhe: Tag Nova + Título + Botão de Opções -->
-        <div class="flex items-center justify-between mb-2">
-          <span class="text-[9.5px] font-semibold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded" id="detalhe-status">
-            <?= e($pauta_selecionada['status']) ?>
+<?php else: ?>
+  <div class="split split--even" style="grid-template-columns: minmax(0, 5fr) minmax(0, 7fr)">
+    <div class="stack stack--sm" id="lista-pautas">
+      <?php foreach ($pautas_lista as $p): ?>
+        <button type="button" class="inbox-item <?= $p['ativo'] ? 'is-selected' : '' ?>" id="pauta-item-<?= (int)$p['id'] ?>" data-pauta="<?= e((string)json_encode($p, JSON_UNESCAPED_UNICODE)) ?>">
+          <span class="avatar avatar--soft"><?= e($p['sigla']) ?></span>
+          <span class="grow">
+            <span class="row row--between" style="align-items:flex-start;gap:8px">
+              <span class="cell__title"><?= e($p['titulo']) ?></span>
+              <span class="faint text-xs t-nowrap"><?= e($p['data']) ?></span>
+            </span>
+            <span class="cell__meta" style="display:block;margin-top:2px"><?= e($p['aluno']) ?> · <?= e($p['categoria']) ?></span>
+            <span style="display:block;margin-top:8px"><?= ui_badge($p['status'], $tons_pauta[$p['status']] ?? 'neutral') ?></span>
           </span>
-          <button type="button" class="text-gray-400 hover:text-black text-xs font-bold">•••</button>
-        </div>
-
-        <h2 class="text-2xl font-editorial-heading font-bold text-[#111827] leading-tight mb-1" id="detalhe-titulo">
-          <?= e($pauta_selecionada['titulo']) ?>
-        </h2>
-        
-        <p class="text-xs text-gray-400 mb-6" id="detalhe-autor-data">
-          Enviado por <strong class="text-gray-600"><?= e($pauta_selecionada['aluno']) ?></strong> • <?= e($pauta_selecionada['data']) ?>
-        </p>
-
-        <!-- Informações do Estudante em Grade de 3 Colunas -->
-        <div class="grid grid-cols-3 gap-4 p-3 bg-[#fafaf8] border border-gray-100 rounded-lg text-xs mb-6">
-          <div>
-            <span class="text-[9.5px] text-gray-400 uppercase tracking-wider block">ESTUDANTE</span>
-            <span class="font-bold text-gray-800" id="detalhe-aluno"><?= e($pauta_selecionada['aluno']) ?></span>
-          </div>
-          <div>
-            <span class="text-[9.5px] text-gray-400 uppercase tracking-wider block">CATEGORIA</span>
-            <span class="font-bold text-gray-800" id="detalhe-categoria"><?= e($pauta_selecionada['categoria']) ?></span>
-          </div>
-          <div>
-            <span class="text-[9.5px] text-gray-400 uppercase tracking-wider block">TURMA</span>
-            <span class="font-bold text-gray-800" id="detalhe-turma"><?= e($pauta_selecionada['turma']) ?></span>
-          </div>
-        </div>
-
-        <!-- Descrição da Sugestão -->
-        <div class="mb-5">
-          <h4 class="text-xs font-bold text-gray-900 mb-1.5">Descrição da sugestão</h4>
-          <p class="text-xs text-gray-600 font-sans leading-relaxed text-justify" id="detalhe-descricao">
-            <?= e($pauta_selecionada['descricao'] ?? '') ?>
-          </p>
-        </div>
-
-        <!-- Justificativa: Por que essa pauta é importante? -->
-        <div class="mb-6">
-          <h4 class="text-xs font-bold text-gray-900 mb-1.5">Por que essa pauta é importante?</h4>
-          <p class="text-xs text-gray-600 font-sans leading-relaxed text-justify" id="detalhe-justificativa">
-            <?= e($pauta_selecionada['justificativa'] ?? '') ?>
-          </p>
-        </div>
-
-      </div>
-
-      <!-- Barra de Ações: Recusar, Marcar em análise, Transformar em reportagem -->
-      <div class="pt-4 border-t border-gray-100 flex flex-wrap items-center justify-end gap-2.5">
-        <form method="POST" action="" class="inline-flex gap-2">
-          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-          <input type="hidden" name="pauta_id" id="form-pauta-id" value="<?= $pauta_selecionada['id'] ?>">
-          <button type="submit" name="acao_pauta" value="recusada" class="border border-gray-200 rounded px-3.5 py-1.5 text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-            Recusar
-          </button>
-          <button type="submit" name="acao_pauta" value="em_analise" class="border border-gray-200 rounded px-3.5 py-1.5 text-xs text-gray-700 bg-white hover:bg-gray-50 transition-colors">
-            Marcar em análise
-          </button>
-        </form>
-
-        <a href="?transformar_id=<?= $pauta_selecionada['id'] ?>" id="link-transformar" class="btn-admin-red">
-          <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-          Transformar em reportagem
-        </a>
-      </div>
-
+        </button>
+      <?php endforeach; ?>
     </div>
-  <?php endif; ?>
 
-</div>
+    <?php if ($pauta_selecionada): ?>
+      <div class="card sticky-panel" id="painel-detalhe">
+        <div class="card__body stack">
+          <div>
+            <span id="detalhe-status"><?= ui_badge($pauta_selecionada['status'], $tons_pauta[$pauta_selecionada['status']] ?? 'neutral') ?></span>
+            <h2 id="detalhe-titulo" style="font-size:22px;line-height:1.3;font-weight:700;margin-top:10px"><?= e($pauta_selecionada['titulo']) ?></h2>
+            <p class="muted text-sm" style="margin-top:4px">Enviado por <strong id="detalhe-autor"><?= e($pauta_selecionada['aluno']) ?></strong> · <span id="detalhe-data"><?= e($pauta_selecionada['data']) ?></span></p>
+          </div>
 
-<script>
-function exibirPauta(p) {
-  document.getElementById('detalhe-status').innerText = p.status;
-  document.getElementById('detalhe-titulo').innerText = p.titulo;
-  document.getElementById('detalhe-autor-data').innerHTML = `Enviado por <strong class="text-gray-600">${p.aluno}</strong> • ${p.data}`;
-  document.getElementById('detalhe-aluno').innerText = p.aluno;
-  document.getElementById('detalhe-categoria').innerText = p.categoria;
-  document.getElementById('detalhe-turma').innerText = p.turma;
-  document.getElementById('detalhe-descricao').innerText = p.descricao || '';
-  document.getElementById('detalhe-justificativa').innerText = p.justificativa || '';
-  document.getElementById('form-pauta-id').value = p.id;
-  document.getElementById('link-transformar').href = `?transformar_id=${p.id}`;
+          <div class="info-grid">
+            <div><small>Estudante</small><span class="strong" id="detalhe-aluno"><?= e($pauta_selecionada['aluno']) ?></span></div>
+            <div><small>Categoria</small><span class="strong" id="detalhe-categoria"><?= e($pauta_selecionada['categoria']) ?></span></div>
+            <div><small>Turma</small><span class="strong" id="detalhe-turma"><?= e($pauta_selecionada['turma']) ?></span></div>
+          </div>
 
-  document.querySelectorAll('.pauta-item').forEach(el => {
-    el.classList.remove('border-l-4', 'border-l-[#c0262d]', 'bg-[#fbfbf9]');
-  });
-  const itemEl = document.getElementById('pauta-item-' + p.id);
-  if (itemEl) itemEl.classList.add('border-l-4', 'border-l-[#c0262d]', 'bg-[#fbfbf9]');
-}
-</script>
+          <div>
+            <h4 class="strong" style="margin-bottom:6px">Descrição da sugestão</h4>
+            <p class="muted" style="white-space:pre-line;line-height:1.65" id="detalhe-descricao"><?= e($pauta_selecionada['descricao'] ?? '') ?></p>
+          </div>
+          <div>
+            <h4 class="strong" style="margin-bottom:6px">Por que essa pauta é importante?</h4>
+            <p class="muted" style="white-space:pre-line;line-height:1.65" id="detalhe-justificativa"><?= e($pauta_selecionada['justificativa'] ?? '') ?></p>
+          </div>
+        </div>
+
+        <div class="card__foot" style="justify-content:flex-end">
+          <form method="POST" action="" class="row row--wrap">
+            <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+            <input type="hidden" name="pauta_id" id="form-pauta-id" value="<?= (int)$pauta_selecionada['id'] ?>">
+            <button type="submit" name="acao_pauta" value="recusada" class="btn btn--danger">Recusar</button>
+            <button type="submit" name="acao_pauta" value="em_analise" class="btn">Marcar em análise</button>
+          </form>
+          <a href="?transformar_id=<?= (int)$pauta_selecionada['id'] ?>" id="link-transformar" class="btn btn--primary"><?= ui_icon('pen', 'ic--sm') ?> Transformar em reportagem</a>
+        </div>
+      </div>
+    <?php endif; ?>
+  </div>
+
+  <script>
+  (function () {
+    var tons = { 'Nova': 'badge--info', 'Em análise': 'badge--warn', 'Aprovada': 'badge--ok', 'Recusada': 'badge--bad' };
+    var lista = document.getElementById('lista-pautas');
+    function set(id, txt) { document.getElementById(id).textContent = txt || ''; }
+    lista.addEventListener('click', function (ev) {
+      var item = ev.target.closest('.inbox-item');
+      if (!item) { return; }
+      var p = JSON.parse(item.getAttribute('data-pauta'));
+      var st = document.getElementById('detalhe-status');
+      st.innerHTML = '<span class="badge ' + (tons[p.status] || '') + '"></span>';
+      st.firstChild.textContent = p.status;
+      set('detalhe-titulo', p.titulo); set('detalhe-autor', p.aluno); set('detalhe-data', p.data);
+      set('detalhe-aluno', p.aluno); set('detalhe-categoria', p.categoria); set('detalhe-turma', p.turma);
+      set('detalhe-descricao', p.descricao); set('detalhe-justificativa', p.justificativa);
+      document.getElementById('form-pauta-id').value = p.id;
+      document.getElementById('link-transformar').href = '?transformar_id=' + encodeURIComponent(p.id);
+      Array.prototype.forEach.call(lista.querySelectorAll('.inbox-item'), function (el) { el.classList.remove('is-selected'); });
+      item.classList.add('is-selected');
+      if (window.innerWidth < 1024) { document.getElementById('painel-detalhe').scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  })();
+  </script>
+<?php endif; ?>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

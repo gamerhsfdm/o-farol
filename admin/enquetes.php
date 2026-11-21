@@ -1,7 +1,7 @@
 <?php
 /**
- * O FAROL - Gestão de Enquetes Fiel à Imagem 8
- * Tabela de Enquetes + Painel de Resultados ao Vivo com Barras Verdes Escuras (#0e2f33)
+ * O FAROL - Gestão de Enquetes
+ * Lista de enquetes com total de votos + painel de resultados.
  */
 declare(strict_types=1);
 $admin_title = "Enquetes";
@@ -11,6 +11,7 @@ require_once __DIR__ . '/header.php';
 $pdo = getDBConnection();
 $mensagem = '';
 $erro = '';
+$erro_carga = '';
 
 // Criar nova enquete via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_enquete'])) {
@@ -29,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_enquete'])) {
 
                 $linhas = explode("\n", $opcoes_texto);
                 $ordem = 1;
-                $stmtOp = $pdo->prepare("INSERT INTO enquete_opcoes (enquete_id, opcao, votos, ordem) VALUES (?, ?, 0, ?)");
+                $stmtOp = $pdo->prepare("INSERT INTO enquete_opcoes (enquete_id, opcao, votos_count, ordem) VALUES (?, ?, 0, ?)");
                 foreach ($linhas as $linha) {
                     $opcao = trim($linha);
                     if (!empty($opcao)) {
@@ -50,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_enquete'])) {
 $enquetes_tabela = [];
 if ($pdo) {
     try {
-        $stmt = $pdo->query("SELECT e.*, COALESCE(SUM(o.votos), 0) as total_votos 
+        $stmt = $pdo->query("SELECT e.*, COALESCE(SUM(o.votos_count), 0) as total_votos 
                              FROM enquetes e 
                              LEFT JOIN enquete_opcoes o ON e.id = o.enquete_id 
                              GROUP BY e.id 
@@ -62,186 +63,142 @@ if ($pdo) {
                 'id' => $eq['id'],
                 'pergunta' => $eq['pergunta'],
                 'votos' => (string)($eq['total_votos'] ?? 0),
-                'data' => !empty($eq['data_fim']) ? date('d M', strtotime($eq['data_fim'])) : 'Sem prazo',
+                'data' => !empty($eq['data_fim']) ? date('d/m/Y', strtotime($eq['data_fim'])) : 'Sem prazo',
                 'status' => $status_txt
             ];
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        $erro_carga = $e->getMessage();
+    }
 }
 
-// Fallback exato da Imagem 8
-if (empty($enquetes_tabela)) {
-    $enquetes_tabela = [
-        ['id' => 1, 'pergunta' => 'Qual tema você quer ver na próxima edição?', 'votos' => '482', 'data' => '20 jun', 'status' => 'Ativa'],
-        ['id' => 2, 'pergunta' => 'Qual projeto mais inspira você?', 'votos' => '328', 'data' => '12 jun', 'status' => 'Encerrada'],
-        ['id' => 3, 'pergunta' => 'Você participa de algum clube escolar?', 'votos' => '216', 'data' => '30 jun', 'status' => 'Rascunho']
-    ];
-}
-
-// Resultados ao vivo da primeira enquete ativa
+// Enquete exibida no painel de resultados (?ver=ID ou a mais recente)
+$ver_id = (int)($_GET['ver'] ?? 0);
 $enquete_destaque = $enquetes_tabela[0] ?? null;
+foreach ($enquetes_tabela as $eqt) {
+    if ($ver_id > 0 && (int)$eqt['id'] === $ver_id) {
+        $enquete_destaque = $eqt;
+        break;
+    }
+}
 $resultados_opcoes = [];
 if ($enquete_destaque && $pdo) {
     try {
-        $stmtOp = $pdo->prepare("SELECT opcao, votos FROM enquete_opcoes WHERE enquete_id = ? ORDER BY ordem ASC");
+        $stmtOp = $pdo->prepare("SELECT opcao, votos_count FROM enquete_opcoes WHERE enquete_id = ? ORDER BY ordem ASC");
         $stmtOp->execute([$enquete_destaque['id']]);
         $ops = $stmtOp->fetchAll();
-        $totalV = array_sum(array_column($ops, 'votos')) ?: 1;
+        $totalV = array_sum(array_column($ops, 'votos_count')) ?: 1;
         foreach ($ops as $op) {
             $resultados_opcoes[] = [
                 'opcao' => $op['opcao'],
-                'percentual' => round(($op['votos'] / $totalV) * 100)
+                'votos' => (int)$op['votos_count'],
+                'percentual' => round(($op['votos_count'] / $totalV) * 100)
             ];
         }
-    } catch (Exception $e) {}
-}
-if (empty($resultados_opcoes)) {
-    $resultados_opcoes = [
-        ['opcao' => 'Ciência e tecnologia', 'percentual' => 42],
-        ['opcao' => 'Cultura e arte', 'percentual' => 27],
-        ['opcao' => 'Esportes', 'percentual' => 19],
-        ['opcao' => 'Carreiras e futuro', 'percentual' => 12]
-    ];
+    } catch (Exception $e) {
+        $erro_carga = $erro_carga ?: $e->getMessage();
+    }
 }
 ?>
 
-<!-- TOPO: TÍTULO + BOTÃO NOVA ENQUETE -->
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / ADMINISTRAÇÃO</div>
-    <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Enquetes</h1>
-    <p class="text-xs text-gray-500 mt-1">Crie perguntas e acompanhe a participação dos leitores.</p>
-  </div>
-  <button type="button" onclick="document.getElementById('modal-nova-enquete').classList.remove('hidden')" class="btn-admin-red">
-    + Nova enquete
-  </button>
-</div>
+<?= ui_page_header('Enquetes', 'Crie perguntas e acompanhe a participação dos leitores.',
+    '<button type="button" class="btn btn--primary" data-modal-open="modal-nova-enquete">' . ui_icon('plus') . ' Nova enquete</button>') ?>
 
-<?php if ($mensagem): ?>
-  <div class="p-3 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center justify-between">
-    <span>✓ <?= e($mensagem) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 font-bold">×</button>
-  </div>
-<?php endif; ?>
+<?= ui_alerts($mensagem, $erro) ?>
+<?php if ($erro_carga !== ''): ?><?= ui_load_error($erro_carga) ?><?php endif; ?>
 
-<?php if ($erro): ?>
-  <div class="p-3 mb-6 bg-red-50 border border-red-200 text-red-800 text-xs rounded flex items-center justify-between">
-    <span>⚠️ <?= e($erro) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-red-700 font-bold">×</button>
+<?php if (empty($enquetes_tabela)): ?>
+  <div class="card">
+    <?= ui_empty('chart', 'Nenhuma enquete cadastrada', 'Crie uma pergunta para ouvir a comunidade escolar na seção Voz do Aluno.',
+        '<button type="button" class="btn btn--primary" data-modal-open="modal-nova-enquete">' . ui_icon('plus') . ' Nova enquete</button>') ?>
   </div>
-<?php endif; ?>
-
-<!-- GRADE TABELA DE ENQUETES (ESQ) + RESULTADOS AO VIVO (DIR) IDÊNTICO À IMAGEM 8 -->
-<div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-  
-  <!-- Tabela de Enquetes (7 Colunas) -->
-  <div class="lg:col-span-7 admin-card overflow-hidden">
-    <table class="w-full text-left text-xs">
-      <thead>
-        <tr class="border-b border-[#f0eee9] text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-[#fafaf8]">
-          <th class="p-3.5">PERGUNTA</th>
-          <th class="p-3.5">VOTOS</th>
-          <th class="p-3.5">ENCERRAMENTO</th>
-          <th class="p-3.5">STATUS</th>
-          <th class="p-3.5 text-right"></th>
-        </tr>
-      </thead>
-      <tbody class="divide-y divide-[#f7f6f2]">
-        <?php foreach ($enquetes_tabela as $eq): ?>
-          <tr class="hover:bg-[#fafaf8] transition-colors">
-            <td class="p-3.5">
-              <div class="font-bold text-gray-900"><?= e($eq['pergunta']) ?></div>
-              <div class="text-[10px] text-gray-400 mt-0.5">4 alternativas</div>
-            </td>
-            <td class="p-3.5 text-gray-600 font-medium"><?= e($eq['votos']) ?></td>
-            <td class="p-3.5 text-gray-600"><?= e($eq['data']) ?></td>
-            <td class="p-3.5">
-              <span class="<?= $eq['status'] === 'Ativa' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-gray-100 text-gray-600 border border-gray-200' ?> px-2 py-0.5 rounded text-[10px] font-semibold">
-                <?= e($eq['status']) ?>
-              </span>
-            </td>
-            <td class="p-3.5 text-right">
-              <button type="button" class="text-gray-400 hover:text-black font-bold">•••</button>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Resultados ao Vivo (5 Colunas) IDÊNTICO À IMAGEM 8 -->
-  <div class="lg:col-span-5 admin-card p-6">
-    <div class="flex items-center justify-between pb-3 mb-4 border-b border-[#f0eee9]">
-      <div>
-        <h3 class="text-xs font-bold text-gray-900">Resultados ao vivo</h3>
-        <p class="text-[10px] text-gray-400"><?= e($enquete_destaque['votos'] ?? '482') ?> votos • Atualizado agora</p>
+<?php else: ?>
+  <div class="split split--wide">
+    <div class="card card--flush">
+      <div class="tbl-wrap">
+        <table class="tbl" style="min-width:560px">
+          <thead>
+            <tr><th>Pergunta</th><th>Votos</th><th>Encerramento</th><th>Status</th><th class="t-right">Resultados</th></tr>
+          </thead>
+          <tbody>
+            <?php foreach ($enquetes_tabela as $eq): ?>
+              <tr>
+                <td><span class="cell__title"><?= e($eq['pergunta']) ?></span></td>
+                <td class="strong"><?= e($eq['votos']) ?></td>
+                <td class="t-nowrap muted"><?= e($eq['data']) ?></td>
+                <td><?= $eq['status'] === 'Ativa' ? ui_badge('Ativa', 'ok') : ui_badge('Encerrada') ?></td>
+                <td class="t-right">
+                  <?php if ($enquete_destaque && (int)$enquete_destaque['id'] === (int)$eq['id']): ?>
+                    <?= ui_badge('Em exibição', 'brand') ?>
+                  <?php else: ?>
+                    <a href="?ver=<?= (int)$eq['id'] ?>" class="btn btn--ghost btn--sm">Ver</a>
+                  <?php endif; ?>
+                </td>
+              </tr>
+            <?php endforeach; ?>
+          </tbody>
+        </table>
       </div>
-      <span class="text-[10px] font-semibold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded">Ativa</span>
     </div>
 
-    <!-- Pergunta em Destaque -->
-    <h4 class="text-base font-editorial-heading font-bold text-[#111827] leading-snug mb-5">
-      <?= e($enquete_destaque['pergunta'] ?? 'Qual tema você quer ver na próxima edição?') ?>
-    </h4>
-
-    <!-- Barras de Percentual em Verde Petróleo (#0e2f33) -->
-    <div class="space-y-4">
-      <?php foreach ($resultados_opcoes as $res): ?>
+    <div class="card">
+      <div class="card__head">
         <div>
-          <div class="flex justify-between text-xs mb-1">
-            <span class="text-gray-700 font-medium"><?= e($res['opcao']) ?></span>
-            <span class="font-bold text-gray-900"><?= $res['percentual'] ?>%</span>
-          </div>
-          <div class="w-full bg-[#f0eee9] h-2 rounded-full overflow-hidden">
-            <div class="bg-[#0e2f33] h-full rounded-full transition-all duration-500" style="width: <?= $res['percentual'] ?>%"></div>
-          </div>
+          <div class="card__title">Resultados</div>
+          <div class="card__sub"><?= e($enquete_destaque['votos'] ?? '0') ?> votos no total</div>
         </div>
-      <?php endforeach; ?>
+        <?= ($enquete_destaque['status'] ?? '') === 'Ativa' ? ui_badge('Ativa', 'ok') : ui_badge('Encerrada') ?>
+      </div>
+      <div class="card__body">
+        <h4 style="font-size:17px;line-height:1.35;font-weight:600;margin-bottom:20px"><?= e($enquete_destaque['pergunta'] ?? '') ?></h4>
+        <?php if (empty($resultados_opcoes)): ?>
+          <p class="muted text-sm">Esta enquete ainda não tem opções de resposta.</p>
+        <?php else: ?>
+          <div class="stack stack--sm">
+            <?php foreach ($resultados_opcoes as $res): ?>
+              <div>
+                <div class="row row--between text-sm" style="margin-bottom:6px">
+                  <span><?= e($res['opcao']) ?></span>
+                  <span class="strong"><?= (int)$res['percentual'] ?>% <span class="faint" style="font-weight:400">(<?= (int)$res['votos'] ?>)</span></span>
+                </div>
+                <div class="poll-bar"><i style="width: <?= (int)$res['percentual'] ?>%"></i></div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endif; ?>
+      </div>
     </div>
-
   </div>
+<?php endif; ?>
 
-</div>
-
-<!-- MODAL PARA CADASTRAR NOVA ENQUETE -->
-<div id="modal-nova-enquete" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-[#f0eee9]">
-    <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
-      <h3 class="text-sm font-bold text-gray-900 font-editorial-heading">Nova Enquete Escolar</h3>
-      <button type="button" onclick="document.getElementById('modal-nova-enquete').classList.add('hidden')" class="text-gray-400 hover:text-black">×</button>
+<!-- Modal: nova enquete -->
+<div id="modal-nova-enquete" class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-nova-enquete">
+  <form method="POST" action="" class="modal__panel">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+    <div class="modal__head">
+      <h3 class="modal__title" id="titulo-nova-enquete">Nova enquete escolar</h3>
+      <button type="button" class="icon-btn icon-btn--sm" data-modal-close aria-label="Fechar"><?= ui_icon('x') ?></button>
     </div>
-
-    <form method="POST" action="" class="space-y-4">
-      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Pergunta da Enquete *</label>
-        <input type="text" name="pergunta" required placeholder="Ex: Qual atração você prefere na Feira Cultural?" 
-               class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#c0262d] focus:outline-none">
+    <div class="modal__body">
+      <div class="field">
+        <label class="label" for="enq-pergunta">Pergunta da enquete *</label>
+        <input type="text" id="enq-pergunta" name="pergunta" required placeholder="Ex: Qual atração você prefere na Feira Cultural?" class="input">
       </div>
-
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Opções de Resposta (uma por linha) *</label>
-        <textarea name="opcoes" rows="4" required placeholder="Show de talentos acústico&#10;Teatro de cordel&#10;Torneio de games e xadrez&#10;Exposição de robótica" 
-                  class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#c0262d] focus:outline-none"></textarea>
+      <div class="field">
+        <label class="label" for="enq-opcoes">Opções de resposta *</label>
+        <textarea id="enq-opcoes" name="opcoes" rows="4" required placeholder="Uma opção por linha" class="textarea"></textarea>
+        <span class="hint">Digite uma opção por linha.</span>
       </div>
-
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Data de Encerramento</label>
-        <input type="date" name="data_encerramento" value="<?= date('Y-m-d', strtotime('+7 days')) ?>" 
-               class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#c0262d] focus:outline-none bg-white">
+      <div class="field">
+        <label class="label" for="enq-data">Data de encerramento</label>
+        <input type="date" id="enq-data" name="data_encerramento" value="<?= date('Y-m-d', strtotime('+7 days')) ?>" class="input">
       </div>
-
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-        <button type="button" onclick="document.getElementById('modal-nova-enquete').classList.add('hidden')" 
-                class="px-4 py-2 border border-gray-200 rounded text-xs text-gray-700 bg-white hover:bg-gray-50">
-          Cancelar
-        </button>
-        <button type="submit" name="criar_enquete" value="1" class="btn-admin-red">
-          Publicar Enquete
-        </button>
-      </div>
-    </form>
-  </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="submit" name="criar_enquete" value="1" class="btn btn--primary">Publicar enquete</button>
+    </div>
+  </form>
 </div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

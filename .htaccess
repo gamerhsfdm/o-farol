@@ -13,3 +13,8 @@ RewriteRule ^categoria/([a-zA-Z0-9_-]+)/?$ categoria.php?slug=$1 [L,QSA]
 
 # Prevenção de listagem de diretórios
 Options -Indexes
+
+# Arquivos operacionais e documentação não devem ser servidos pela web.
+<FilesMatch "^(?:database\.sql|credenciais\.txt|README(?:\.md)?)$">
+    Require all denied
+</FilesMatch>

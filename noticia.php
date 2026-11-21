@@ -36,18 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['enviar_comentario']))
         } elseif ($pdo && $noticia_id > 0) {
             try {
                 // Cria tabela caso ainda não exista no MySQL local
-                $pdo->exec("CREATE TABLE IF NOT EXISTS `comentarios` (
-                    `id` INT AUTO_INCREMENT PRIMARY KEY,
-                    `noticia_id` INT NOT NULL,
-                    `nome_autor` VARCHAR(120) NOT NULL,
-                    `email_autor` VARCHAR(150) NOT NULL,
-                    `turma_autor` VARCHAR(80) NULL,
-                    `conteudo` TEXT NOT NULL,
-                    `status` ENUM('pendente', 'aprovado', 'rejeitado') NOT NULL DEFAULT 'pendente',
-                    `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-                $stmtCom = $pdo->prepare("INSERT INTO comentarios (noticia_id, nome_autor, email_autor, turma_autor, conteudo, status, criado_em) VALUES (?, ?, ?, ?, ?, 'aprovado', NOW())");
+                $stmtCom = $pdo->prepare("INSERT INTO comentarios (noticia_id, nome_autor, email_autor, turma_autor, conteudo, status, criado_em) VALUES (?, ?, ?, ?, ?, 'pendente', NOW())");
                 $stmtCom->execute([$noticia_id, $nome, $email, $turma, $conteudo]);
                 $mensagem_comentario = "Seu comentário foi publicado com sucesso!";
             } catch (Exception $e) {
@@ -83,7 +72,7 @@ if ($pdo && !empty($slug)) {
             $autores = $stmtA->fetchAll();
 
             // Matérias Relacionadas
-            $stmtRel = $pdo->prepare("SELECT id, titulo, slug, COALESCE(foto_capa, imagem_capa) as imagem_capa, publicado_em 
+            $stmtRel = $pdo->prepare("SELECT id, titulo, slug, imagem_capa, publicado_em 
                                       FROM noticias 
                                       WHERE categoria_id = ? AND id != ? AND status = 'publicado' 
                                       ORDER BY publicado_em DESC LIMIT 4");
@@ -100,8 +89,16 @@ if ($pdo && !empty($slug)) {
     } catch (Exception $e) {}
 }
 
-// Fallback visual completo caso acesse slug de demonstração ou banco em inicialização
 if (!$noticia) {
+    http_response_code(404);
+    $page_title = 'Reportagem indisponível';
+    require_once __DIR__ . '/includes/header.php';
+    echo '<main class="container-farol py-8"><div class="editorial-card p-12 text-center bg-white"><h1 class="text-2xl font-headline font-bold">Reportagem não encontrada</h1><p class="text-sm text-gray-500 mt-2">A matéria solicitada não está disponível.</p></div></main>';
+    require_once __DIR__ . '/includes/footer.php';
+    exit;
+}
+
+/*
     // Matéria padrão inspirada no Hero da imagem
     $noticia = [
         'id' => 1,
@@ -156,12 +153,14 @@ if (!$noticia) {
     ];
 }
 
+*/
+
 $page_title = $noticia['titulo'];
 $page_desc = $noticia['subtitulo'];
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<main class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8">
   
   <!-- BREADCRUMB EDITORIAL -->
   <nav class="flex items-center gap-2 text-xs text-gray-500 font-sans mb-6 pb-2 border-b border-gray-200">
@@ -224,8 +223,9 @@ require_once __DIR__ . '/includes/header.php';
 
       <!-- Imagem de Capa em Alta Resolução -->
       <?php 
-        $foto_exibida = !empty($noticia['foto_capa']) ? $noticia['foto_capa'] : (!empty($noticia['imagem_capa']) ? $noticia['imagem_capa'] : 'assets/images/hero-premiacao.jpg');
+        $foto_exibida = (string)($noticia['imagem_capa'] ?? '');
       ?>
+      <?php if ($foto_exibida !== ''): ?>
       <figure class="mb-8 rounded overflow-hidden border border-gray-200">
         <img src="<?= BASE_URL ?>/<?= e($foto_exibida) ?>" 
              alt="<?= e($noticia['titulo']) ?>" 
@@ -240,6 +240,7 @@ require_once __DIR__ . '/includes/header.php';
           </figcaption>
         <?php endif; ?>
       </figure>
+      <?php endif; ?>
 
       <!-- Pull Quote Editorial em Destaque -->
       <?php if (!empty($noticia['citacao_destaque'])): ?>

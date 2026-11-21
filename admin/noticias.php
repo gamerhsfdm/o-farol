@@ -1,7 +1,7 @@
 <?php
 /**
- * O FAROL - Gestão de Notícias Fiel à Imagem 2
- * Filtros em abas vermelhas + busca + tabela limpa com checkboxes e ações
+ * O FAROL - Gestão de Notícias
+ * Abas de status, busca, filtros por categoria/autor, tabela e ações rápidas.
  */
 declare(strict_types=1);
 $admin_title = "Notícias";
@@ -10,9 +10,12 @@ require_once __DIR__ . '/header.php';
 
 $pdo = getDBConnection();
 $status_filter = $_GET['status'] ?? 'todas';
-$autor_filter = $_GET['autor'] ?? '';
+$autor_filter = trim($_GET['autor'] ?? '');
+$categoria_filter = (int)($_GET['categoria'] ?? 0);
 $search_query = trim($_GET['q'] ?? '');
 $mensagem = '';
+$erro = '';
+$erro_carga = '';
 
 // Exclusão ou arquivamento rápido
 if (isset($_GET['deletar_id']) && $pdo) {
@@ -21,11 +24,13 @@ if (isset($_GET['deletar_id']) && $pdo) {
         $stmtD = $pdo->prepare("DELETE FROM noticias WHERE id = ?");
         $stmtD->execute([$delId]);
         $mensagem = "Reportagem excluída com sucesso!";
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        $erro = "Não foi possível excluir a reportagem.";
+    }
 }
 
-// Contagens para os pills de status
-$counts = ['todas' => 128, 'publicadas' => 94, 'rascunhos' => 18, 'revisao' => 8, 'aprovadas' => 3, 'agendadas' => 5, 'arquivadas' => 0];
+// Contagens para as abas de status
+$counts = ['todas' => 0, 'publicadas' => 0, 'rascunhos' => 0, 'revisao' => 0, 'aprovadas' => 0, 'agendadas' => 0, 'arquivadas' => 0];
 if ($pdo) {
     try {
         $stmtTot = $pdo->query("SELECT status, COUNT(*) as qtd FROM noticias GROUP BY status");
@@ -42,8 +47,20 @@ if ($pdo) {
             elseif ($st === 'agendado') $counts['agendadas'] = $qtd;
             elseif ($st === 'arquivado') $counts['arquivadas'] = $qtd;
         }
-        if ($totalAll > 0) $counts['todas'] = $totalAll;
-    } catch (Exception $e) {}
+        $counts['todas'] = $totalAll;
+    } catch (Exception $e) {
+        $erro_carga = $erro_carga ?: $e->getMessage();
+    }
+}
+
+// Categorias para o filtro
+$cats_filtro = [];
+if ($pdo) {
+    try {
+        $cats_filtro = $pdo->query("SELECT id, nome FROM categorias ORDER BY nome ASC")->fetchAll();
+    } catch (Exception $e) {
+        $erro_carga = $erro_carga ?: $e->getMessage();
+    }
 }
 
 // Consulta notícias do banco
@@ -64,6 +81,14 @@ if ($pdo) {
             $params[] = "%{$search_query}%";
             $params[] = "%{$search_query}%";
         }
+        if ($categoria_filter > 0) {
+            $where .= " AND n.categoria_id = ?";
+            $params[] = $categoria_filter;
+        }
+        if ($autor_filter !== '') {
+            $where .= " AND EXISTS (SELECT 1 FROM noticia_autores nax JOIN autores ax ON ax.id = nax.autor_id WHERE nax.noticia_id = n.id AND ax.nome = ?)";
+            $params[] = $autor_filter;
+        }
 
         $stmt = $pdo->prepare("SELECT n.*, c.nome as categoria_nome, 
                                COALESCE((SELECT a.nome FROM autores a JOIN noticia_autores na ON a.id = na.autor_id WHERE na.noticia_id = n.id LIMIT 1), 'Redação') as autor_nome
@@ -80,164 +105,132 @@ if ($pdo) {
                 'categoria_nome' => $bn['categoria_nome'],
                 'autor_nome' => $bn['autor_nome'],
                 'status' => $bn['status'],
-                'data' => date('d M, H:i', strtotime($bn['publicado_em'] ?? $bn['criado_em'] ?? 'now')),
-                'foto' => !empty($bn['foto_capa']) ? $bn['foto_capa'] : 'assets/images/ciencia-lab.jpg',
+                'data' => ui_date($bn['publicado_em'] ?? $bn['criado_em'] ?? null),
+                'foto' => $bn['imagem_capa'] ?? '',
                 'slug' => $bn['slug']
             ];
         }
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        $erro_carga = $erro_carga ?: $e->getMessage();
+    }
 }
 
-// Fallback visual exato da Imagem 2
-if (empty($noticias)) {
-    $noticias = [
-        ['id' => 1, 'titulo' => 'Jovens cientistas apresentam soluções para a escola', 'categoria_nome' => 'Clube de Ciências', 'autor_nome' => 'Ana Luiza', 'status' => 'publicado', 'data' => '12 jun, 09:30', 'foto' => 'assets/images/ciencia-lab.jpg', 'slug' => 'jovens-cientistas'],
-        ['id' => 2, 'titulo' => 'Jogos Escolares reúnem mais de 240 estudantes', 'categoria_nome' => 'Jogos Escolares', 'autor_nome' => 'Lucas Mendes', 'status' => 'revisao', 'data' => '11 jun, 16:45', 'foto' => 'assets/images/hero-premiacao.jpg', 'slug' => 'jogos-escolares-reunem'],
-        ['id' => 3, 'titulo' => 'Clube do Livro debate literatura brasileira', 'categoria_nome' => 'Clube do Livro', 'autor_nome' => 'Beatriz Lima', 'status' => 'rascunho', 'data' => '10 jun, 14:20', 'foto' => 'assets/images/livro-torto-arado.jpg', 'slug' => 'clube-do-livro-debate'],
-        ['id' => 4, 'titulo' => 'Alunos desenvolvem projetos sustentáveis na FECCI', 'categoria_nome' => 'FECCI', 'autor_nome' => 'Rafael Souza', 'status' => 'agendado', 'data' => '14 jun, 10:00', 'foto' => 'assets/images/hero-premiacao.jpg', 'slug' => 'alunos-projetos-fecci'],
-        ['id' => 5, 'titulo' => 'Feira Cultural celebra saberes e identidades', 'categoria_nome' => 'Feira Cultural', 'autor_nome' => 'Camila Rocha', 'status' => 'publicado', 'data' => '08 jun, 11:15', 'foto' => 'assets/images/flagrante-semana.jpg', 'slug' => 'feira-cultural-celebra']
-    ];
-}
+$tem_filtro = ($search_query !== '' || $categoria_filter > 0 || $autor_filter !== '' || $status_filter !== 'todas');
+$tabs = [
+    'todas' => 'Todas', 'publicadas' => 'Publicadas', 'rascunhos' => 'Rascunhos', 'revisao' => 'Em revisão',
+    'aprovadas' => 'Aprovadas', 'agendadas' => 'Agendadas', 'arquivadas' => 'Arquivadas'
+];
+$qs_base = ['q' => $search_query, 'categoria' => $categoria_filter ?: '', 'autor' => $autor_filter];
 ?>
 
-<!-- TOPO DA PÁGINA -->
-<div class="flex items-center justify-between mb-6">
-  <div>
-    <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / ADMINISTRAÇÃO</div>
-    <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Notícias</h1>
-    <p class="text-xs text-gray-500 mt-1">Gerencie todas as reportagens, rascunhos e publicações.</p>
-  </div>
-  <a href="<?= BASE_URL ?>/admin/editor.php" class="btn-admin-red">
-    + Nova notícia
-  </a>
-</div>
+<?= ui_page_header('Notícias', 'Gerencie todas as reportagens, rascunhos e publicações.',
+    '<a href="' . BASE_URL . '/admin/editor.php" class="btn btn--primary">' . ui_icon('plus') . ' Nova notícia</a>') ?>
 
-<?php if ($mensagem): ?>
-  <div class="p-3 mb-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center justify-between">
-    <span>✓ <?= e($mensagem) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 font-bold">×</button>
-  </div>
-<?php endif; ?>
+<?= ui_alerts($mensagem, $erro) ?>
+<?php if ($erro_carga !== ''): ?><?= ui_load_error($erro_carga) ?><?php endif; ?>
 
-<!-- ABAS DE STATUS (PILLS) IDÊNTICAS À IMAGEM 2 -->
-<div class="flex flex-wrap gap-2 mb-4">
-  <a href="?status=todas" class="admin-pill-tab <?= $status_filter === 'todas' ? 'active' : '' ?>">Todas <?= $counts['todas'] ?></a>
-  <a href="?status=publicadas" class="admin-pill-tab <?= $status_filter === 'publicadas' ? 'active' : '' ?>">Publicadas <?= $counts['publicadas'] ?></a>
-  <a href="?status=rascunhos" class="admin-pill-tab <?= $status_filter === 'rascunhos' ? 'active' : '' ?>">Rascunhos <?= $counts['rascunhos'] ?></a>
-  <a href="?status=revisao" class="admin-pill-tab <?= $status_filter === 'revisao' ? 'active' : '' ?>">Em revisão <?= $counts['revisao'] ?></a>
-  <a href="?status=aprovadas" class="admin-pill-tab <?= $status_filter === 'aprovadas' ? 'active' : '' ?>">Aprovadas <?= $counts['aprovadas'] ?></a>
-  <a href="?status=agendadas" class="admin-pill-tab <?= $status_filter === 'agendadas' ? 'active' : '' ?>">Agendadas <?= $counts['agendadas'] ?></a>
-  <a href="?status=arquivadas" class="admin-pill-tab <?= $status_filter === 'arquivadas' ? 'active' : '' ?>">Arquivadas</a>
-</div>
+<!-- Abas de status -->
+<nav class="tabs" aria-label="Filtrar por status">
+  <?php foreach ($tabs as $chave => $rotulo): ?>
+    <a href="?<?= e(http_build_query(array_filter(array_merge($qs_base, ['status' => $chave]), static fn($v) => $v !== '' && $v !== null))) ?>"
+       class="tab <?= $status_filter === $chave ? 'is-active' : '' ?>">
+      <?= e($rotulo) ?> <span class="tab__count"><?= (int)$counts[$chave] ?></span>
+    </a>
+  <?php endforeach; ?>
+</nav>
 
-<!-- BARRA DE PESQUISA E FILTROS IDÊNTICA À IMAGEM 2 -->
-<form method="GET" action="" class="admin-card p-3 mb-6 flex flex-wrap items-center justify-between gap-3">
+<!-- Busca e filtros -->
+<form method="GET" action="" class="card toolbar">
   <input type="hidden" name="status" value="<?= e($status_filter) ?>">
-  <div class="relative flex-1 min-w-[280px]">
-    <input type="text" name="q" value="<?= e($search_query) ?>" placeholder="Buscar por título, autor ou categoria..." 
-           class="w-full pl-8 pr-3 py-1.5 text-xs bg-transparent border-0 focus:outline-none">
-    <svg class="w-4 h-4 text-gray-400 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+  <?php if ($autor_filter !== ''): ?><input type="hidden" name="autor" value="<?= e($autor_filter) ?>"><?php endif; ?>
+  <div class="input-icon">
+    <?= ui_icon('search') ?>
+    <input type="search" name="q" value="<?= e($search_query) ?>" placeholder="Buscar por título ou subtítulo…" class="input" aria-label="Buscar notícias">
   </div>
-  
-  <div class="flex items-center gap-2 text-xs">
-    <button type="button" class="border border-gray-200 rounded px-3 py-1.5 bg-[#fafaf8] text-gray-600 flex items-center gap-1.5">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-      Categoria ⌄
-    </button>
-    <button type="button" class="border border-gray-200 rounded px-3 py-1.5 bg-[#fafaf8] text-gray-600 flex items-center gap-1.5">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-      Período ⌄
-    </button>
+  <div class="toolbar__group">
+    <select name="categoria" class="select" aria-label="Filtrar por categoria" onchange="this.form.submit()">
+      <option value="">Todas as categorias</option>
+      <?php foreach ($cats_filtro as $cf): ?>
+        <option value="<?= (int)$cf['id'] ?>" <?= $categoria_filter === (int)$cf['id'] ? 'selected' : '' ?>><?= e($cf['nome']) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <button type="submit" class="btn btn--primary"><?= ui_icon('filter', 'ic--sm') ?> Filtrar</button>
+    <?php if ($tem_filtro): ?>
+      <a href="<?= BASE_URL ?>/admin/noticias.php" class="btn btn--ghost">Limpar</a>
+    <?php endif; ?>
   </div>
 </form>
 
-<!-- TABELA DE NOTÍCIAS IDÊNTICA À IMAGEM 2 -->
-<div class="admin-card overflow-hidden">
-  <table class="w-full text-left text-xs">
-    <thead>
-      <tr class="border-b border-[#f0eee9] text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-[#fafaf8]">
-        <th class="p-3.5 w-8"><input type="checkbox" class="rounded text-[#c0262d]"></th>
-        <th class="p-3.5">NOTÍCIA</th>
-        <th class="p-3.5">CATEGORIA</th>
-        <th class="p-3.5">AUTOR</th>
-        <th class="p-3.5">STATUS</th>
-        <th class="p-3.5">PUBLICAÇÃO</th>
-        <th class="p-3.5">AÇÕES</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-[#f7f6f2]">
-      <?php foreach ($noticias as $item): ?>
-        <tr class="hover:bg-[#fafaf8] transition-colors">
-          <td class="p-3.5"><input type="checkbox" class="rounded text-[#c0262d]"></td>
-          
-          <!-- Notícia com Miniatura e Título -->
-          <td class="p-3.5">
-            <div class="flex items-center gap-3">
-              <img src="<?= BASE_URL ?>/<?= e($item['foto']) ?>" class="w-12 h-10 object-cover rounded border border-gray-200 flex-shrink-0">
-              <div>
-                <a href="<?= BASE_URL ?>/admin/editor.php?id=<?= $item['id'] ?>" class="font-bold text-gray-900 hover:text-[#c0262d] leading-snug line-clamp-1">
-                  <?= e($item['titulo']) ?>
-                </a>
-                <span class="text-[10px] text-gray-400 block mt-0.5">ofarol.edu.br/noticias/<?= e($item['slug']) ?></span>
-              </div>
-            </div>
-          </td>
+<?php if ($autor_filter !== ''): ?>
+  <div class="mb-4"><?= ui_badge('Autor: ' . $autor_filter, 'brand') ?></div>
+<?php endif; ?>
 
-          <td class="p-3.5 text-gray-600"><?= e($item['categoria_nome']) ?></td>
-
-          <!-- Autor com Avatar de Iniciais -->
-          <td class="p-3.5">
-            <div class="flex items-center gap-1.5">
-              <div class="w-5 h-5 rounded-full bg-gray-100 text-gray-700 text-[9px] font-bold flex items-center justify-center">
-                <?= strtoupper(substr($item['autor_nome'], 0, 2)) ?>
-              </div>
-              <span class="text-gray-700"><?= e($item['autor_nome']) ?></span>
-            </div>
-          </td>
-
-          <!-- Badges de Status -->
-          <td class="p-3.5">
-            <?php if ($item['status'] === 'publicado'): ?>
-              <span class="badge-status badge-status-published">Publicada</span>
-            <?php elseif ($item['status'] === 'revisao'): ?>
-              <span class="badge-status badge-status-review">Em revisão</span>
-            <?php elseif ($item['status'] === 'agendado'): ?>
-              <span class="badge-status badge-status-scheduled">Agendada</span>
-            <?php else: ?>
-              <span class="badge-status badge-status-draft">Rascunho</span>
-            <?php endif; ?>
-          </td>
-
-          <td class="p-3.5 text-gray-500 whitespace-nowrap"><?= e($item['data']) ?></td>
-
-          <!-- Ações: Editar e Excluir -->
-          <td class="p-3.5 text-right whitespace-nowrap">
-            <div class="flex items-center justify-end gap-2">
-              <a href="<?= BASE_URL ?>/admin/editor.php?id=<?= $item['id'] ?>" class="text-xs text-gray-600 hover:text-[#c0262d] font-bold" title="Editar">
-                ✏️
-              </a>
-              <a href="?deletar_id=<?= $item['id'] ?>" onclick="return confirm('Deseja realmente excluir esta notícia?')" class="text-xs text-red-500 hover:text-red-700 font-bold" title="Excluir">
-                🗑️
-              </a>
-            </div>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
-
-  <!-- Rodapé com Paginação -->
-  <div class="p-4 border-t border-[#f0eee9] flex items-center justify-between text-xs text-gray-500 bg-[#fafaf8]">
-    <span>Mostrando 1-<?= count($noticias) ?> de <?= $counts['todas'] ?> notícias</span>
-    <div class="flex items-center gap-1">
-      <button class="px-2.5 py-1 rounded border border-gray-200 bg-white">Anterior</button>
-      <button class="px-2.5 py-1 rounded bg-[#0e2f33] text-white font-bold">1</button>
-      <button class="px-2.5 py-1 rounded border border-gray-200 bg-white">2</button>
-      <button class="px-2.5 py-1 rounded border border-gray-200 bg-white">3</button>
-      <span>...</span>
-      <button class="px-2.5 py-1 rounded border border-gray-200 bg-white">Próximo</button>
+<div class="card card--flush">
+  <?php if (empty($noticias)): ?>
+    <?php if ($tem_filtro): ?>
+      <?= ui_empty('search', 'Nenhuma notícia encontrada', 'Nenhum resultado para os filtros aplicados. Tente outros termos ou limpe os filtros.',
+          '<a href="' . BASE_URL . '/admin/noticias.php" class="btn">Limpar filtros</a>') ?>
+    <?php else: ?>
+      <?= ui_empty('news', 'Nenhuma notícia cadastrada', 'Crie a primeira reportagem do jornal.',
+          '<a href="' . BASE_URL . '/admin/editor.php" class="btn btn--primary">' . ui_icon('plus') . ' Nova notícia</a>') ?>
+    <?php endif; ?>
+  <?php else: ?>
+    <div class="tbl-wrap">
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Notícia</th>
+            <th>Categoria</th>
+            <th>Autor</th>
+            <th>Status</th>
+            <th>Publicação</th>
+            <th class="t-right">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php foreach ($noticias as $item): ?>
+            <tr>
+              <td>
+                <div class="cell">
+                  <?php if (!empty($item['foto'])): ?>
+                    <img src="<?= BASE_URL ?>/<?= e((string)$item['foto']) ?>" alt="" class="thumb" loading="lazy">
+                  <?php else: ?>
+                    <div class="thumb"></div>
+                  <?php endif; ?>
+                  <div style="min-width:0">
+                    <a href="<?= BASE_URL ?>/admin/editor.php?id=<?= (int)$item['id'] ?>" class="cell__title clamp-2"><?= e($item['titulo']) ?></a>
+                    <div class="cell__meta truncate-1">/noticia/<?= e($item['slug']) ?></div>
+                  </div>
+                </div>
+              </td>
+              <td class="t-nowrap"><?= e($item['categoria_nome']) ?></td>
+              <td class="t-nowrap">
+                <div class="cell"><span class="avatar avatar--sm avatar--soft"><?= e(ui_initials($item['autor_nome'])) ?></span><?= e($item['autor_nome']) ?></div>
+              </td>
+              <td><?= ui_news_status($item['status']) ?></td>
+              <td class="t-nowrap muted"><?= e($item['data']) ?></td>
+              <td class="t-right">
+                <span class="row-actions">
+                  <a href="<?= BASE_URL ?>/admin/editor.php?id=<?= (int)$item['id'] ?>" class="icon-btn icon-btn--sm" title="Editar" aria-label="Editar"><?= ui_icon('pen') ?></a>
+                  <a href="<?= BASE_URL ?>/admin/history.php?id=<?= (int)$item['id'] ?>" class="icon-btn icon-btn--sm" title="Histórico de versões" aria-label="Histórico de versões"><?= ui_icon('history') ?></a>
+                  <?php if ($item['status'] === 'publicado'): ?>
+                    <a href="<?= BASE_URL ?>/noticia.php?slug=<?= urlencode((string)$item['slug']) ?>" target="_blank" rel="noopener" class="icon-btn icon-btn--sm" title="Ver no site" aria-label="Ver no site"><?= ui_icon('external') ?></a>
+                  <?php endif; ?>
+                  <a href="?deletar_id=<?= (int)$item['id'] ?>" class="icon-btn icon-btn--sm icon-btn--danger" title="Excluir" aria-label="Excluir"
+                     data-confirm="Esta reportagem será excluída permanentemente. Essa ação não pode ser desfeita."
+                     data-confirm-title="Excluir notícia?" data-confirm-ok="Excluir"><?= ui_icon('trash') ?></a>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
     </div>
-  </div>
+    <div class="card__foot">
+      <span><?= count($noticias) ?> notícia<?= count($noticias) === 1 ? '' : 's' ?> exibida<?= count($noticias) === 1 ? '' : 's' ?></span>
+      <span>Total no jornal: <?= (int)$counts['todas'] ?></span>
+    </div>
+  <?php endif; ?>
 </div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

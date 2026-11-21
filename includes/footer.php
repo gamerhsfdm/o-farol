@@ -10,7 +10,7 @@ $settings = get_site_settings();
 ?>
 
   <!-- FAIXA DE CONVITE EDITORIAL MODERNA -->
-  <section class="bg-[#0f4c5c] text-white py-8 mt-12 border-y border-[#0a2f38] shadow-inner">
+  <section class="site-cta bg-[#0f4c5c] text-white py-8 mt-12 border-y border-[#0a2f38] shadow-inner">
     <div class="container-farol flex flex-col md:flex-row items-center justify-between gap-6">
       <div class="max-w-2xl text-center md:text-left">
         <span class="editorial-badge badge-crimson text-[9px] mb-2">PARTICIPAÇÃO ESTUDANTIL</span>
@@ -31,7 +31,7 @@ $settings = get_site_settings();
   </section>
 
   <!-- RODAPÉ INSTITUCIONAL EDITORIAL -->
-  <footer class="bg-[#111827] text-[#9ca3af] pt-12 pb-8 font-sans border-t border-[#1f2937]">
+  <footer class="site-footer bg-[#111827] text-[#9ca3af] pt-12 pb-8 font-sans border-t border-[#1f2937]">
     <div class="container-farol">
       
       <!-- Topo do Rodapé: Logo e Identidade -->

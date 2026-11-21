@@ -3,14 +3,15 @@
  * O FAROL - Histórico de Versões e Auditoria de Conteúdo
  */
 declare(strict_types=1);
-$admin_title = "Histórico de Versões";
+$admin_title = "Histórico de versões";
+$admin_breadcrumb = "Histórico de versões";
 require_once __DIR__ . '/header.php';
 
 $pdo = getDBConnection();
 $noticia_id = (int)($_GET['id'] ?? 0);
 
 if ($noticia_id <= 0 || !$pdo) {
-    echo '<div class="p-4 bg-red-50 text-red-700 text-xs">Notícia inválida.</div>';
+    echo ui_alerts('', 'Notícia inválida.');
     require_once __DIR__ . '/footer.php';
     exit;
 }
@@ -20,7 +21,7 @@ $stmtN->execute([$noticia_id]);
 $noticia = $stmtN->fetch();
 
 if (!$noticia) {
-    echo '<div class="p-4 bg-red-50 text-red-700 text-xs">Notícia não encontrada.</div>';
+    echo ui_alerts('', 'Notícia não encontrada.');
     require_once __DIR__ . '/footer.php';
     exit;
 }
@@ -61,56 +62,38 @@ $stmtList->execute([$noticia_id]);
 $versoes = $stmtList->fetchAll();
 ?>
 
-<div class="flex items-center justify-between pb-4 mb-6 border-b border-gray-200">
-  <div>
-    <h1 class="text-2xl font-serif font-extrabold text-[#111827]">Histórico de Versões</h1>
-    <p class="text-xs text-gray-500 mt-1">
-      Matéria: <strong>“<?= e($noticia['titulo']) ?>”</strong>
-    </p>
-  </div>
-  <a href="<?= BASE_URL ?>/admin/editor.php?id=<?= $noticia_id ?>" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold px-3 py-1.5 rounded border border-gray-300">
-    ← Voltar ao Editor
-  </a>
-</div>
+<?= ui_page_header('Histórico de versões', 'Matéria: ' . $noticia['titulo'],
+    '<a href="' . BASE_URL . '/admin/editor.php?id=' . $noticia_id . '" class="btn">' . ui_icon('arrow-l') . ' Voltar ao editor</a>') ?>
 
 <?php if (isset($_GET['msg']) && $_GET['msg'] === 'restaurado'): ?>
-  <div class="bg-emerald-50 border border-emerald-300 text-emerald-800 p-3 rounded text-xs mb-6 font-medium">
-    ✓ Versão restaurada com sucesso no artigo ativo!
-  </div>
+  <?= ui_alerts('Versão restaurada com sucesso na matéria ativa!') ?>
 <?php endif; ?>
 
 <?php if (!empty($versoes)): ?>
-  <div class="space-y-4">
+  <div class="stack">
     <?php foreach ($versoes as $v): ?>
-      <div class="bg-white p-5 rounded-lg border border-gray-200 shadow-sm">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-gray-100 gap-2 mb-3">
-          <div class="flex items-center gap-3">
-            <span class="bg-[#164e63] text-white font-bold text-xs px-2.5 py-0.5 rounded">
-              Versão #<?= e((string)$v['versao']) ?>
-            </span>
-            <span class="text-xs text-gray-500">
-              Arquivada em <?= date('d/m/Y \à\s H:i:s', strtotime($v['criado_em'])) ?> por <strong><?= e($v['usuario_nome'] ?? 'Redação') ?></strong>
-            </span>
+      <div class="card">
+        <div class="card__head">
+          <div class="row row--wrap">
+            <?= ui_badge('Versão #' . (string)$v['versao'], 'brand') ?>
+            <span class="muted text-sm">Arquivada em <?= date('d/m/Y \à\s H:i', strtotime($v['criado_em'])) ?> por <strong><?= e($v['usuario_nome'] ?? 'Redação') ?></strong></span>
           </div>
-          
-          <form action="<?= BASE_URL ?>/admin/history.php?id=<?= $noticia_id ?>" method="POST" onsubmit="return confirm('Tem certeza que deseja restaurar esta versão antiga para a matéria ativa?');">
+          <form action="<?= BASE_URL ?>/admin/history.php?id=<?= $noticia_id ?>" method="POST"
+                data-confirm="A matéria ativa será substituída pelo conteúdo desta versão." data-confirm-title="Restaurar esta versão?" data-confirm-ok="Restaurar" data-confirm-tone="primary">
             <input type="hidden" name="acao" value="restaurar">
-            <input type="hidden" name="versao_id" value="<?= $v['id'] ?>">
+            <input type="hidden" name="versao_id" value="<?= (int)$v['id'] ?>">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-            <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs px-3 py-1.5 rounded shadow">
-              ↺ Restaurar Esta Versão
-            </button>
+            <button type="submit" class="btn btn--sm"><?= ui_icon('restore', 'ic--sm') ?> Restaurar esta versão</button>
           </form>
         </div>
-
-        <div class="text-xs space-y-2">
-          <div><strong class="text-gray-700">Título:</strong> <span class="text-gray-900 font-serif font-bold"><?= e($v['titulo']) ?></span></div>
+        <div class="card__body stack stack--sm">
+          <div><span class="muted text-sm">Título</span><div class="strong" style="font-size:16px"><?= e($v['titulo']) ?></div></div>
           <?php if (!empty($v['subtitulo'])): ?>
-            <div><strong class="text-gray-700">Subtítulo:</strong> <span class="text-gray-600"><?= e($v['subtitulo']) ?></span></div>
+            <div><span class="muted text-sm">Subtítulo</span><div><?= e($v['subtitulo']) ?></div></div>
           <?php endif; ?>
-          <details class="text-[11px] text-gray-500 pt-2 cursor-pointer">
-            <summary class="font-bold text-[#164e63] hover:underline">Ver Conteúdo Arquivado da Versão</summary>
-            <div class="p-3 bg-gray-50 rounded border border-gray-200 mt-2 text-gray-700 text-xs">
+          <details>
+            <summary class="link" style="cursor:pointer">Ver conteúdo arquivado desta versão</summary>
+            <div style="margin-top:10px;padding:16px;background:var(--surface-2);border:1px solid var(--line);border-radius:var(--r);overflow-x:auto;line-height:1.7">
               <?= $v['conteudo'] ?>
             </div>
           </details>
@@ -119,8 +102,8 @@ $versoes = $stmtList->fetchAll();
     <?php endforeach; ?>
   </div>
 <?php else: ?>
-  <div class="bg-white p-12 text-center rounded-lg border border-gray-200">
-    <p class="text-gray-500 text-xs">Ainda não existem versões arquivadas para esta matéria. Novas versões são geradas a cada alteração salva no editor.</p>
+  <div class="card">
+    <?= ui_empty('history', 'Nenhuma versão arquivada', 'Ainda não existem versões arquivadas para esta matéria. As versões aparecem aqui quando forem registradas.') ?>
   </div>
 <?php endif; ?>
 

@@ -27,6 +27,7 @@ $current_cat = $_GET['cat'] ?? ($_GET['slug'] ?? '');
   <!-- CSS Base + Tailwind Pré-compilado + CSS Editorial Moderno -->
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/main.css">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/editorial-modern.css">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/site.css">
   
   <style>
     /* Estilos do Cabeçalho Modernizado */
@@ -72,7 +73,8 @@ $current_cat = $_GET['cat'] ?? ($_GET['slug'] ?? '');
     }
   </style>
 </head>
-<body class="bg-[#f6f5f0] text-[#111827]">
+<body class="bg-[#f6f5f0] text-[#111827] site-public">
+  <a class="skip-link" href="#conteudo-principal">Pular para o conteúdo principal</a>
 
   <!-- Barra de Progresso de Leitura Superior -->
   <div id="reading-progress"></div>
@@ -99,7 +101,7 @@ $current_cat = $_GET['cat'] ?? ($_GET['slug'] ?? '');
   </div>
 
   <!-- 2. MASTHEAD / CABEÇALHO EDITORIAL IMPONENTE -->
-  <header class="bg-white border-b border-[#e6e3da] pt-6 pb-4">
+  <header class="site-masthead bg-white border-b border-[#e6e3da] pt-6 pb-4">
     <div class="container-farol">
       
       <div class="flex flex-col md:flex-row items-center justify-between gap-4 py-2">
@@ -155,7 +157,7 @@ $current_cat = $_GET['cat'] ?? ($_GET['slug'] ?? '');
   </header>
 
   <!-- 3. BARRA DE NAVEGAÇÃO STICKY MODERNA -->
-  <div class="sticky-nav-container border-b border-[#111827]">
+  <div class="sticky-nav-container site-nav border-b border-[#111827]">
     <div class="container-farol">
       
       <div class="flex items-center justify-between">
@@ -194,7 +196,7 @@ $current_cat = $_GET['cat'] ?? ($_GET['slug'] ?? '');
     </div>
 
     <!-- MENU MOBILE EXPANSÍVEL -->
-    <div id="mobile-menu" class="hidden lg:hidden bg-white border-t border-gray-200 px-4 pt-3 pb-6 shadow-xl">
+    <div id="mobile-menu" class="site-drawer hidden lg:hidden bg-white border-t border-gray-200 px-4 pt-3 pb-6 shadow-xl">
       <div class="flex flex-col space-y-1">
         <a href="<?= BASE_URL ?>/index.php" class="py-2 text-sm font-bold border-b border-gray-100 <?= ($current_page === 'index.php' && empty($current_cat)) ? 'text-[#b91c1c]' : 'text-gray-800' ?>">
           Página Inicial (Capa)

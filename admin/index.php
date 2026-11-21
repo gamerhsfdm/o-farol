@@ -4,6 +4,7 @@
  */
 declare(strict_types=1);
 require_once __DIR__ . '/../includes/functions.php';
+require_once __DIR__ . '/ui.php';
 
 // Se já estiver logado, redireciona ao dashboard
 if (is_logged_in()) {
@@ -60,64 +61,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
   <title>Login Administrativo — O FAROL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/main.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="<?= BASE_URL ?>/assets/css/admin-fiel.css">
 </head>
-<body class="bg-[#f5f3ec] min-h-screen flex items-center justify-center p-4">
-
-  <div class="max-w-md w-full newspaper-paper p-8 shadow-md">
-    
-    <!-- Cabeçalho do Card de Login -->
-    <div class="text-center mb-6">
-      <span class="tag-editorial text-[9px] mb-2">ACESSO RESTRITO</span>
-      <h1 class="text-3xl font-serif font-extrabold text-[#111827] mt-1">O FAROL</h1>
-      <p class="text-xs text-gray-600 mt-1">Gestão Editorial • Jornal Escolar Sesc-Senac</p>
-    </div>
-
-    <?php if (!empty($erro)): ?>
-      <div class="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded mb-4">
-        <?= e($erro) ?>
+<body class="admin auth">
+  <div class="auth-shell">
+    <aside class="auth-aside">
+      <div class="row">
+        <span class="brand-mark">F</span>
+        <div><div class="brand-name">O FAROL</div><div class="brand-sub">Jornal escolar</div></div>
       </div>
-    <?php endif; ?>
-
-    <form action="<?= BASE_URL ?>/admin/index.php" method="POST" class="space-y-4">
-      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-
-      <div>
-        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">E-mail Administrativo</label>
-        <input type="email" name="email" required placeholder="admin@ofarol.sescsenac.edu.br" 
-               class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#164e63]">
+      <div class="auth-aside__quote">
+        <h2>A redação do Farol em um só lugar.</h2>
+        <p>Escreva, revise e publique as reportagens da comunidade escolar com organização e segurança.</p>
       </div>
-
-      <div>
-        <div class="flex items-center justify-between mb-1">
-          <label class="block text-xs font-bold text-gray-700 uppercase">Senha</label>
-          <a href="<?= BASE_URL ?>/admin/registro.php" class="text-[11px] text-[#c0262d] hover:underline font-bold">
-            Criar conta
-          </a>
+      <div class="auth-aside__foot">Jornal Escolar Sesc-Senac · Gestão editorial</div>
+    </aside>
+    <main class="auth-main">
+      <div class="auth-card">
+        <div class="auth-brand-mobile">
+          <span class="brand-mark">F</span>
+          <div><div class="brand-name">O FAROL</div><div class="brand-sub">Jornal escolar</div></div>
         </div>
-        <input type="password" name="senha" required placeholder="••••••••" 
-               class="w-full border border-gray-300 rounded p-2.5 text-xs bg-gray-50 focus:bg-white focus:outline-none focus:border-[#164e63]">
+        <h1>Entrar no painel</h1>
+        <p class="auth-card__sub">Acesso restrito à equipe editorial. Use seu e-mail institucional.</p>
+
+        <?= ui_alerts('', (string)$erro) ?>
+
+        <form action="<?= BASE_URL ?>/admin/index.php" method="POST" class="stack stack--sm">
+          <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+          <div class="field">
+            <label class="label" for="login-email">E-mail administrativo</label>
+            <input type="email" id="login-email" name="email" required autofocus autocomplete="username" placeholder="nome@ofarol.sescsenac.edu.br" class="input">
+          </div>
+          <div class="field">
+            <div class="row row--between">
+              <label class="label" for="login-senha">Senha</label>
+              <a href="<?= BASE_URL ?>/admin/registro.php" class="link text-sm">Criar conta</a>
+            </div>
+            <input type="password" id="login-senha" name="senha" required autocomplete="current-password" placeholder="••••••••" class="input">
+          </div>
+          <button type="submit" class="btn btn--primary btn--block" style="height:44px">Entrar no painel</button>
+        </form>
+
+        <details class="install-note">
+          <summary>Primeiro acesso após a instalação</summary>
+          <p style="margin-top:8px">Credencial padrão: <code>admin@ofarol.sescsenac.edu.br</code> / <code>Admin@2026Farol</code></p>
+        </details>
+
+        <div class="auth-links">
+          <a href="<?= BASE_URL ?>/index.php" class="muted">← Voltar ao portal público</a>
+        </div>
       </div>
-
-      <button type="submit" class="w-full bg-[#164e63] hover:bg-[#0e3a4b] text-white font-bold text-xs uppercase tracking-wider py-3 rounded transition shadow">
-        ENTRAR NO PAINEL CMS
-      </button>
-    </form>
-
-    <div class="mt-6 pt-4 border-t border-gray-200 text-center text-xs text-gray-500">
-      <p>Credencial padrão de instalação:</p>
-      <code class="text-[11px] bg-gray-100 p-1 rounded text-gray-800">admin@ofarol.sescsenac.edu.br</code> / <code class="text-[11px] bg-gray-100 p-1 rounded text-gray-800">Admin@2026Farol</code>
-    </div>
-
-    <div class="mt-4 text-center">
-      <a href="<?= BASE_URL ?>/index.php" class="text-xs text-[#b91c1c] hover:underline font-bold">
-        ← Voltar ao Portal Público
-      </a>
-    </div>
-
+    </main>
   </div>
-
+<script>
+document.addEventListener('submit', function (e) {
+  var b = e.target.querySelector('button[type=submit]');
+  if (b && !e.defaultPrevented) { setTimeout(function () { b.classList.add('is-loading'); }, 0); }
+});
+window.addEventListener('pageshow', function () { Array.prototype.forEach.call(document.querySelectorAll('.is-loading'), function (b) { b.classList.remove('is-loading'); }); });
+</script>
 </body>
 </html>

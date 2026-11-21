@@ -112,229 +112,161 @@ $papeis = [
 ];
 ?>
 
-<!-- TOPO: TÍTULO + BOTÃO NOVO USUÁRIO -->
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-  <div>
-    <div class="text-[10px] font-bold text-[#c0262d] uppercase tracking-wider mb-1">O FAROL / ADMINISTRAÇÃO</div>
-    <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Equipe e permissões</h1>
-    <p class="text-xs text-gray-500 mt-1">Gerencie os acessos administrativos, credenciais e níveis editoriais do jornal.</p>
-  </div>
-  <button onclick="document.getElementById('modal-novo-usuario').classList.remove('hidden');" class="btn-admin-red">
-    + Novo membro da equipe
-  </button>
-</div>
+<?= ui_page_header('Equipe e permissões', 'Gerencie os acessos administrativos, credenciais e níveis editoriais do jornal.',
+    '<button type="button" class="btn btn--primary" data-modal-open="modal-novo-usuario">' . ui_icon('user-plus') . ' Novo membro da equipe</button>') ?>
 
-<?php if (!empty($sucesso)): ?>
-  <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs p-3 rounded-lg mb-6 flex items-center justify-between">
-    <span>✓ <?= $sucesso ?></span>
-    <button onclick="this.parentElement.remove();" class="text-emerald-500 hover:text-emerald-900">&times;</button>
-  </div>
-<?php endif; ?>
+<?= ui_alerts(strip_tags((string)$sucesso), (string)$erro) ?>
 
-<?php if (!empty($erro)): ?>
-  <div class="bg-red-50 border border-red-200 text-red-700 text-xs p-3 rounded-lg mb-6 flex items-center justify-between">
-    <span>⚠ <?= e($erro) ?></span>
-    <button onclick="this.parentElement.remove();" class="text-red-500 hover:text-red-900">&times;</button>
-  </div>
-<?php endif; ?>
+<?php $tons_papel = ['admin' => 'accent', 'editor_chefe' => 'warn', 'editor' => 'ok', 'colaborador' => 'info']; ?>
 
-<!-- NÍVEIS DE ACESSO INFORMATIVOS -->
-<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+<!-- Níveis de acesso -->
+<div class="cols cols--4 mb-6">
   <?php foreach ($papeis as $chave => $info): ?>
-    <div class="admin-card p-4">
-      <span class="text-[10px] uppercase font-bold px-2 py-0.5 rounded border <?= $info['cor'] ?>">
-        <?= $info['nome'] ?>
-      </span>
-      <p class="text-xs text-gray-500 mt-2 leading-relaxed"><?= $info['desc'] ?></p>
+    <div class="card" style="padding:16px 18px">
+      <?= ui_badge($info['nome'], $tons_papel[$chave] ?? 'neutral') ?>
+      <p class="muted text-sm" style="margin-top:10px"><?= e($info['desc']) ?></p>
     </div>
   <?php endforeach; ?>
 </div>
 
-<!-- TABELA DE USUÁRIOS -->
-<div class="admin-card overflow-hidden">
-  <div class="p-4 border-b border-[#f0eee9] flex items-center justify-between">
-    <h3 class="text-xs font-bold text-gray-900 uppercase tracking-wider">Membros com Acesso ao CMS (<?= count($usuarios) ?>)</h3>
-    <span class="text-[11px] text-gray-400">Total cadastrado no banco de dados</span>
+<div class="card card--flush">
+  <div class="card__head">
+    <div>
+      <div class="card__title">Membros com acesso ao CMS</div>
+      <div class="card__sub"><?= count($usuarios) ?> cadastrado<?= count($usuarios) === 1 ? '' : 's' ?></div>
+    </div>
   </div>
 
-  <table class="w-full text-left text-xs">
-    <thead>
-      <tr class="border-b border-[#f0eee9] text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-[#fafaf8]">
-        <th class="p-3.5">USUÁRIO</th>
-        <th class="p-3.5">E-MAIL</th>
-        <th class="p-3.5">PAPEL / NÍVEL</th>
-        <th class="p-3.5">STATUS</th>
-        <th class="p-3.5">ÚLTIMO LOGIN</th>
-        <th class="p-3.5 text-right">AÇÕES</th>
-      </tr>
-    </thead>
-    <tbody class="divide-y divide-[#f7f6f2]">
-      <?php foreach ($usuarios as $u): ?>
-        <tr class="hover:bg-[#fafaf8] transition-colors">
-          <td class="p-3.5">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 rounded-full bg-[#0e2f33] text-white font-bold text-xs flex items-center justify-center flex-shrink-0">
-                <?= strtoupper(substr($u['nome'], 0, 2)) ?>
-              </div>
-              <div>
-                <div class="font-bold text-gray-900"><?= e($u['nome']) ?></div>
-                <div class="text-[10px] text-gray-400">Cadastrado em <?= date('d/m/Y', strtotime($u['criado_em'])) ?></div>
-              </div>
-            </div>
-          </td>
-          
-          <td class="p-3.5 text-gray-700 font-mono"><?= e($u['email']) ?></td>
-
-          <td class="p-3.5">
-            <?php $pInfo = $papeis[$u['papel']] ?? ['nome' => ucfirst($u['papel']), 'cor' => 'bg-gray-100 text-gray-700 border-gray-200']; ?>
-            <span class="text-[10px] font-semibold px-2 py-0.5 rounded border <?= $pInfo['cor'] ?>">
-              <?= $pInfo['nome'] ?>
-            </span>
-          </td>
-
-          <td class="p-3.5">
-            <?php if ($u['ativo']): ?>
-              <span class="badge-status badge-status-published">Ativo</span>
-            <?php else: ?>
-              <span class="badge-status bg-red-100 text-red-700">Inativo</span>
-            <?php endif; ?>
-          </td>
-
-          <td class="p-3.5 text-gray-500 font-sans">
-            <?= $u['ultimo_login'] ? date('d/m/Y \à\s H:i', strtotime($u['ultimo_login'])) : 'Nunca acessou' ?>
-          </td>
-
-          <td class="p-3.5 text-right space-x-2">
-            <!-- Botão Editar -->
-            <button onclick='abrirModalEditar(<?= json_encode($u, JSON_HEX_APOS | JSON_HEX_QUOT) ?>);' class="text-[#0e2f33] hover:underline font-bold text-xs">
-              Editar
-            </button>
-
-            <!-- Alternar Status (Ativar/Desativar) -->
-            <?php if ($u['id'] !== (int)($_SESSION['usuario_id'] ?? 0)): ?>
-              <form action="<?= BASE_URL ?>/admin/users.php" method="POST" class="inline-block">
-                <input type="hidden" name="acao" value="toggle_status">
-                <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <button type="submit" class="text-gray-500 hover:text-black text-xs font-semibold">
-                  <?= $u['ativo'] ? 'Desativar' : 'Ativar' ?>
-                </button>
-              </form>
-
-              <!-- Excluir -->
-              <form action="<?= BASE_URL ?>/admin/users.php" method="POST" class="inline-block" onsubmit="return confirm('Tem certeza que deseja excluir o usuário <?= e($u['nome']) ?>?');">
-                <input type="hidden" name="acao" value="excluir">
-                <input type="hidden" name="id" value="<?= $u['id'] ?>">
-                <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-                <button type="submit" class="text-red-600 hover:underline text-xs font-semibold">
-                  Excluir
-                </button>
-              </form>
-            <?php endif; ?>
-          </td>
-        </tr>
-      <?php endforeach; ?>
-    </tbody>
-  </table>
+  <?php if (empty($usuarios)): ?>
+    <?= ui_empty('users', 'Nenhum membro encontrado', 'Cadastre os membros da equipe que terão acesso ao painel.') ?>
+  <?php else: ?>
+    <div class="tbl-wrap">
+      <table class="tbl" style="min-width:820px">
+        <thead>
+          <tr><th>Usuário</th><th>E-mail</th><th>Papel</th><th>Status</th><th>Último login</th><th class="t-right">Ações</th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($usuarios as $u): ?>
+            <?php $eu = ((int)$u['id'] === (int)($_SESSION['usuario_id'] ?? 0)); ?>
+            <tr>
+              <td>
+                <div class="cell">
+                  <span class="avatar"><?= e(ui_initials($u['nome'])) ?></span>
+                  <div>
+                    <div class="cell__title"><?= e($u['nome']) ?> <?php if ($eu): ?><?= ui_badge('Você', 'brand') ?><?php endif; ?></div>
+                    <div class="cell__meta">Cadastrado em <?= e(ui_date($u['criado_em'] ?? null, false)) ?></div>
+                  </div>
+                </div>
+              </td>
+              <td class="mono"><?= e($u['email']) ?></td>
+              <td><?= ui_badge($papeis[$u['papel']]['nome'] ?? ucfirst((string)$u['papel']), $tons_papel[$u['papel']] ?? 'neutral') ?></td>
+              <td><?= $u['ativo'] ? ui_badge('Ativo', 'ok') : ui_badge('Inativo', 'bad') ?></td>
+              <td class="t-nowrap muted"><?= $u['ultimo_login'] ? e(ui_date($u['ultimo_login'])) : 'Nunca acessou' ?></td>
+              <td class="t-right t-nowrap">
+                <span class="row-actions">
+                  <button type="button" class="btn btn--sm btn--ghost" data-edit-user="<?= e((string)json_encode(['id' => (int)$u['id'], 'nome' => $u['nome'], 'email' => $u['email'], 'papel' => $u['papel'], 'ativo' => (int)$u['ativo']], JSON_UNESCAPED_UNICODE)) ?>">Editar</button>
+                  <?php if (!$eu): ?>
+                    <form action="<?= BASE_URL ?>/admin/users.php" method="POST" style="display:inline">
+                      <input type="hidden" name="acao" value="toggle_status">
+                      <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                      <button type="submit" class="btn btn--sm btn--ghost"><?= $u['ativo'] ? 'Desativar' : 'Ativar' ?></button>
+                    </form>
+                    <form action="<?= BASE_URL ?>/admin/users.php" method="POST" style="display:inline"
+                          data-confirm="O usuário <?= e($u['nome']) ?> será excluído permanentemente." data-confirm-title="Excluir usuário?" data-confirm-ok="Excluir">
+                      <input type="hidden" name="acao" value="excluir">
+                      <input type="hidden" name="id" value="<?= (int)$u['id'] ?>">
+                      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+                      <button type="submit" class="icon-btn icon-btn--sm icon-btn--danger" title="Excluir" aria-label="Excluir <?= e($u['nome']) ?>"><?= ui_icon('trash') ?></button>
+                    </form>
+                  <?php endif; ?>
+                </span>
+              </td>
+            </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+  <?php endif; ?>
 </div>
 
-<!-- ========================================================
-     MODAL DE CADASTRO / EDIÇÃO DE USUÁRIO
-     ======================================================== -->
-<div id="modal-novo-usuario" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-  <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-[#f0eee9]">
-    
-    <div class="flex items-center justify-between pb-3 border-b border-gray-100 mb-4">
-      <h3 id="modal-titulo" class="text-base font-editorial-heading font-bold text-gray-900">Novo Membro da Equipe</h3>
-      <button onclick="fecharModal();" class="text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+<!-- Modal: cadastro / edição -->
+<div id="modal-novo-usuario" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo">
+  <form action="<?= BASE_URL ?>/admin/users.php" method="POST" class="modal__panel">
+    <input type="hidden" name="acao" value="salvar_usuario">
+    <input type="hidden" name="id" id="modal-id" value="0">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+    <div class="modal__head">
+      <h3 class="modal__title" id="modal-titulo">Novo membro da equipe</h3>
+      <button type="button" class="icon-btn icon-btn--sm" data-modal-close aria-label="Fechar"><?= ui_icon('x') ?></button>
     </div>
-
-    <form action="<?= BASE_URL ?>/admin/users.php" method="POST" class="space-y-4">
-      <input type="hidden" name="acao" value="salvar_usuario">
-      <input type="hidden" name="id" id="modal-id" value="0">
-      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-
-      <div>
-        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Nome Completo *</label>
-        <input type="text" name="nome" id="modal-nome" required placeholder="Ex: Marina Costa" 
-               class="w-full border border-gray-200 rounded p-2 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
+    <div class="modal__body">
+      <div class="field">
+        <label class="label" for="modal-nome">Nome completo *</label>
+        <input type="text" name="nome" id="modal-nome" required placeholder="Ex: Marina Costa" class="input">
       </div>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-700 uppercase mb-1">E-mail Institucional *</label>
-        <input type="email" name="email" id="modal-email" required placeholder="marina.costa@ofarol.sescsenac.edu.br" 
-               class="w-full border border-gray-200 rounded p-2 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
+      <div class="field">
+        <label class="label" for="modal-email">E-mail institucional *</label>
+        <input type="email" name="email" id="modal-email" required placeholder="nome@ofarol.sescsenac.edu.br" class="input">
       </div>
-
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Papel / Nível *</label>
-          <select name="papel" id="modal-papel" class="w-full border border-gray-200 rounded p-2 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none">
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="modal-papel">Papel / nível *</label>
+          <select name="papel" id="modal-papel" class="select">
             <option value="editor">Editor</option>
             <option value="editor_chefe">Editor-chefe</option>
             <option value="colaborador">Colaborador</option>
             <option value="admin">Administrador</option>
           </select>
         </div>
-
-        <div>
-          <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Status</label>
-          <label class="flex items-center gap-2 mt-2 cursor-pointer text-xs">
-            <input type="checkbox" name="ativo" id="modal-ativo" value="1" checked class="rounded text-[#0e2f33]">
-            <span>Conta ativa</span>
-          </label>
+        <div class="field">
+          <span class="label">Status</span>
+          <label class="check" style="min-height:40px"><input type="checkbox" name="ativo" id="modal-ativo" value="1" checked> Conta ativa</label>
         </div>
       </div>
-
-      <div>
-        <label class="block text-xs font-bold text-gray-700 uppercase mb-1" id="label-senha">Senha de Acesso *</label>
-        <input type="password" name="senha" id="modal-senha" placeholder="Mínimo de 6 caracteres" 
-               class="w-full border border-gray-200 rounded p-2 text-xs bg-[#fafaf8] focus:bg-white focus:outline-none focus:border-[#0e2f33]">
-        <span id="hint-senha" class="text-[10px] text-gray-400 mt-1 hidden">Deixe em branco para manter a senha atual.</span>
+      <div class="field">
+        <label class="label" for="modal-senha" id="label-senha">Senha de acesso *</label>
+        <input type="password" name="senha" id="modal-senha" placeholder="Mínimo de 6 caracteres" autocomplete="new-password" class="input">
+        <span class="hint" id="hint-senha" hidden>Deixe em branco para manter a senha atual.</span>
       </div>
-
-      <div class="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-        <button type="button" onclick="fecharModal();" class="px-4 py-2 text-xs rounded border border-gray-200 text-gray-600 hover:bg-gray-50">
-          Cancelar
-        </button>
-        <button type="submit" class="btn-admin-red">
-          Salvar Membro
-        </button>
-      </div>
-    </form>
-
-  </div>
+    </div>
+    <div class="modal__foot">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="submit" class="btn btn--primary">Salvar membro</button>
+    </div>
+  </form>
 </div>
 
 <script>
-function abrirModalEditar(user) {
-  document.getElementById('modal-titulo').innerText = 'Editar Membro: ' + user.nome;
-  document.getElementById('modal-id').value = user.id;
-  document.getElementById('modal-nome').value = user.nome;
-  document.getElementById('modal-email').value = user.email;
-  document.getElementById('modal-papel').value = user.papel;
-  document.getElementById('modal-ativo').checked = (user.ativo == 1);
-  
-  // No modo edição a senha é opcional
-  document.getElementById('label-senha').innerText = 'Nova Senha (Opcional)';
-  document.getElementById('modal-senha').required = false;
-  document.getElementById('modal-senha').placeholder = '••••••••';
-  document.getElementById('hint-senha').classList.remove('hidden');
+(function () {
+  var modal = document.getElementById('modal-novo-usuario');
+  var f = function (id) { return document.getElementById(id); };
 
-  document.getElementById('modal-novo-usuario').classList.remove('hidden');
-}
-
-function fecharModal() {
-  document.getElementById('modal-novo-usuario').classList.add('hidden');
-  document.getElementById('modal-id').value = '0';
-  document.getElementById('modal-nome').value = '';
-  document.getElementById('modal-email').value = '';
-  document.getElementById('modal-senha').value = '';
-  document.getElementById('modal-senha').required = true;
-  document.getElementById('label-senha').innerText = 'Senha de Acesso *';
-  document.getElementById('hint-senha').classList.add('hidden');
-  document.getElementById('modal-titulo').innerText = 'Novo Membro da Equipe';
-}
+  function modoNovo() {
+    f('modal-titulo').textContent = 'Novo membro da equipe';
+    f('modal-id').value = '0';
+    f('modal-nome').value = ''; f('modal-email').value = ''; f('modal-senha').value = '';
+    f('modal-papel').value = 'editor'; f('modal-ativo').checked = true;
+    f('modal-senha').required = true;
+    f('label-senha').textContent = 'Senha de acesso *';
+    f('modal-senha').placeholder = 'Mínimo de 6 caracteres';
+    f('hint-senha').hidden = true;
+  }
+  document.addEventListener('click', function (ev) {
+    var b = ev.target.closest('[data-edit-user]');
+    if (!b) { return; }
+    var u = JSON.parse(b.getAttribute('data-edit-user'));
+    f('modal-titulo').textContent = 'Editar membro: ' + u.nome;
+    f('modal-id').value = u.id; f('modal-nome').value = u.nome; f('modal-email').value = u.email;
+    f('modal-papel').value = u.papel; f('modal-ativo').checked = (u.ativo == 1);
+    f('modal-senha').value = ''; f('modal-senha').required = false;
+    f('label-senha').textContent = 'Nova senha (opcional)';
+    f('modal-senha').placeholder = '••••••••';
+    f('hint-senha').hidden = false;
+    window.farolModal.open('modal-novo-usuario');
+  });
+  modal.addEventListener('modal:close', modoNovo);
+})();
 </script>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

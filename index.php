@@ -7,6 +7,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDBConnection();
+$home_settings = get_site_settings();
 
 // 1. Manchete Hero de Alto Impacto
 $hero = null;
@@ -138,12 +139,12 @@ if ($pdo) {
 }
 ?>
 
-<main class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8 site-home">
 
   <!-- ========================================================
        1. MANCHETE HERO DE GRANDE IMPACTO EDITORIAL
        ======================================================== -->
-  <?php if ($hero): ?>
+  <?php if (!empty($home_settings['modulo_manchete']) && $hero): ?>
     <section class="editorial-card p-6 sm:p-8 lg:p-10 mb-10 bg-white border border-[#e6e3da]">
       
       <!-- Topo Editorial com Badges e Metadata -->
@@ -256,7 +257,7 @@ if ($pdo) {
     <div class="lg:col-span-8 space-y-10">
       
       <!-- SEÇÃO 1: CIÊNCIA & PRÁTICA TÉCNICA -->
-      <section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_ciencia'])): ?><section class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-[#0f4c5c] inline-block"></span>
@@ -299,10 +300,10 @@ if ($pdo) {
             </div>
           </div>
         <?php endif; ?>
-      </section>
+      </section><?php endif; ?>
 
       <!-- SEÇÃO 2: JOGOS ESCOLARES INTERCLASSES -->
-      <section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_jogos'])): ?><section class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-[#b91c1c] inline-block"></span>
@@ -355,10 +356,10 @@ if ($pdo) {
           </div>
 
         </div>
-      </section>
+      </section><?php endif; ?>
 
       <!-- SEÇÃO 3: CULTURA & EMPREENDEDORISMO -->
-      <section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_cultura'])): ?><section class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
@@ -387,7 +388,7 @@ if ($pdo) {
             </div>
           <?php endforeach; ?>
         </div>
-      </section>
+      </section><?php endif; ?>
 
       <!-- SEÇÃO 4: COLUNA DE OPINIÃO + FLAGRANTES DA SEMANA -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6">

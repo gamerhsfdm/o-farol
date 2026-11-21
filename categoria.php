@@ -58,7 +58,7 @@ require_once __DIR__ . '/includes/header.php';
 $total_paginas = ceil($total_noticias / $por_pagina);
 ?>
 
-<main class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8">
   
   <!-- CABEÇALHO DA SEÇÃO / EDITORIA -->
   <div class="editorial-card p-6 sm:p-8 mb-8 bg-white border-l-4 border-[#b91c1c]">

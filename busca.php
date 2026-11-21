@@ -20,14 +20,16 @@ if ($pdo && !empty($termo)) {
                                ORDER BY n.publicado_em DESC LIMIT 25");
         $stmt->execute([$busca, $busca, $busca, $busca]);
         $resultados = $stmt->fetchAll();
-    } catch (Exception $e) {}
+    } catch (Exception $e) {
+        error_log('O Farol: falha na busca pública: ' . $e->getMessage());
+    }
 }
 
 $page_title = !empty($termo) ? 'Busca: ' . $termo : 'Pesquisa no Acervo';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<main class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8">
   <div class="editorial-card p-6 sm:p-8 mb-8 bg-white">
     <div class="flex items-center gap-2 mb-2">
       <span class="editorial-badge badge-teal text-[9px]">ACERVO DIGITAL</span>
