@@ -1,0 +1,7 @@
+/* Mantém cards sem capa compactos, nas mesmas dimensões das capas. */
+@media(min-width:1024px){
+  .ref-latest-card .ref-no-image{height:203px!important;min-height:0!important}
+  .ref-latest-card:first-child .ref-no-image{height:299px!important}
+  .ref-latest-card{min-height:0!important}
+}
+.ref-latest-card .ref-no-image{padding:1.25rem;background:linear-gradient(135deg,#0f5a70,#0b4051);font-size:.8rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase}

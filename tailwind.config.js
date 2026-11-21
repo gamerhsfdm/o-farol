@@ -4,6 +4,7 @@ module.exports = {
     "./*.php",
     "./admin/*.php",
     "./includes/*.php",
+    "./includes/components/*.php",
     "./pages/*.php",
     "./assets/js/**/*.js"
   ],

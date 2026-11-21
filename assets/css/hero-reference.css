@@ -1,0 +1,10 @@
+/* Manchete principal — medidas da referência desktop. */
+@media(min-width:1024px){
+  .reference-home{padding-top:0}
+  .ref-hero{grid-template-columns:556px 600px;gap:83px;align-items:start;padding:74px 0 82px}
+  .ref-hero h1{max-width:550px;margin:13px 0 27px;font-size:64px;line-height:.975;letter-spacing:-.055em}
+  .ref-hero__summary{max-width:540px;font-size:18px;line-height:1.52}
+  .ref-hero__media{height:579px}
+}
+.ref-hero__media{position:relative}.ref-hero__tag{position:absolute;right:16px;bottom:28px;z-index:2;padding:8px 12px;background:rgba(255,255,255,.94);color:#10202a;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.ref-hero .ref-byline{margin:29px 0 0;padding-top:18px;border-top:1px solid #d9d5cc}.ref-hero .ref-more{display:inline-block;margin-top:27px}.ref-hero__media figcaption{padding-top:7px}.ref-hero__media figcaption span{max-width:48%}

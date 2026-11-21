@@ -1,0 +1,15 @@
+/* Faixa "Últimas notícias" — grade e escala da referência desktop. */
+@media(min-width:1024px){
+  .ref-latest{padding:31px 0 79px}
+  .ref-latest .ref-section-heading{margin-bottom:31px}
+  .ref-latest .ref-section-heading h2{font-size:43px;line-height:1}
+  .ref-latest-grid{grid-template-columns:500px 370px 370px}
+  .ref-latest-card{min-height:507px;padding:0 21px;border-left:1px solid #d7d2ca}
+  .ref-latest-card:first-child{padding-left:0;padding-right:22px}
+  .ref-latest-card .ref-media-image{height:203px;margin-bottom:25px}
+  .ref-latest-card:first-child .ref-media-image{height:299px;margin-bottom:25px}
+  .ref-latest-card h3{margin:8px 0 15px;font-size:29px;line-height:1.03;letter-spacing:-.035em}
+  .ref-latest-card p{font-family:Newsreader,"Playfair Display",serif;color:#5a6266;font-size:16px;line-height:1.48}
+  .ref-latest-card .ref-category{font-size:10px}
+}
+.ref-card-meta{display:flex;gap:15px;align-items:center;margin-top:20px;color:#6f777c;font-size:8px}.ref-card-meta span:before{content:'•';margin-right:15px;color:#a51f2a}.ref-card-meta time{font-size:8px}

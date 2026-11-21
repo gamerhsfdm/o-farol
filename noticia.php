@@ -160,7 +160,7 @@ $page_desc = $noticia['subtitulo'];
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<main id="conteudo-principal" class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8 site-article">
   
   <!-- BREADCRUMB EDITORIAL -->
   <nav class="flex items-center gap-2 text-xs text-gray-500 font-sans mb-6 pb-2 border-b border-gray-200">
@@ -176,7 +176,7 @@ require_once __DIR__ . '/includes/header.php';
   <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
     
     <!-- ARTIGO PRINCIPAL (8 Colunas) -->
-    <article class="lg:col-span-8 editorial-card p-6 sm:p-10 bg-white border border-[#e6e3da]">
+    <article class="lg:col-span-8 editorial-card p-6 sm:p-10 bg-white border border-[#e6e3da] article-reading">
       
       <!-- Cabeçalho Editorial da Notícia -->
       <header class="mb-8 pb-6 border-b border-gray-200">
@@ -191,7 +191,7 @@ require_once __DIR__ . '/includes/header.php';
           <?= e($noticia['titulo']) ?>
         </h1>
 
-        <p class="text-sm sm:text-base text-gray-600 font-editorial-body leading-relaxed mb-6 text-justify">
+        <p class="text-sm sm:text-base text-gray-600 font-editorial-body leading-relaxed mb-6">
           <?= e($noticia['subtitulo']) ?>
         </p>
 
@@ -253,7 +253,7 @@ require_once __DIR__ . '/includes/header.php';
       <?php endif; ?>
 
       <!-- Corpo da Matéria (Tipografia Editorial de Longa Leitura) -->
-      <div class="prose max-w-none text-gray-800 font-editorial-body text-base sm:text-lg leading-[1.8] space-y-6 text-justify">
+      <div class="article-prose">
         <?= $noticia['conteudo'] ?>
       </div>
 

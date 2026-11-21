@@ -29,8 +29,8 @@ $page_title = !empty($termo) ? 'Busca: ' . $termo : 'Pesquisa no Acervo';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<main id="conteudo-principal" class="container-farol py-8">
-  <div class="editorial-card p-6 sm:p-8 mb-8 bg-white">
+<main id="conteudo-principal" class="container-farol py-8 site-listing site-search">
+  <header class="listing-masthead editorial-card p-6 sm:p-8 mb-8 bg-white">
     <div class="flex items-center gap-2 mb-2">
       <span class="editorial-badge badge-teal text-[9px]">ACERVO DIGITAL</span>
     </div>
@@ -53,13 +53,13 @@ require_once __DIR__ . '/includes/header.php';
         Resultados para "<strong><?= e($termo) ?></strong>" • <strong><?= count($resultados) ?></strong> reportagens encontradas
       </p>
     <?php endif; ?>
-  </div>
+  </header>
 
   <?php if (!empty($termo)): ?>
     <?php if (!empty($resultados)): ?>
       <div class="space-y-4">
         <?php foreach ($resultados as $item): ?>
-          <article class="editorial-card p-6 bg-white hover:border-gray-400 transition-colors">
+          <article class="news-card news-card--horizontal editorial-card p-6 bg-white hover:border-gray-400 transition-colors">
             <span class="editorial-badge badge-teal text-[9px]"><?= strtoupper(e($item['categoria_nome'])) ?></span>
             <h2 class="text-xl sm:text-2xl font-headline font-bold text-[#111827] leading-snug my-2 hover:text-[#b91c1c] transition-colors">
               <a href="<?= BASE_URL ?>/noticia.php?slug=<?= urlencode($item['slug']) ?>">

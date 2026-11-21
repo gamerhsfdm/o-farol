@@ -1,0 +1,9 @@
+/* Correções de layout do cabeçalho. */
+.site-public .site-masthead a.group{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%)}
+.site-public .site-masthead a.group svg{width:52px;height:52px}
+.site-public .header-action .btn-editorial-primary svg{width:14px;height:14px}
+.site-public .site-nav nav{flex:1 1 0;min-width:0}
+.site-public .nav-editorial-link{padding-left:10px;padding-right:10px;font-size:9px}
+.site-public .site-nav form{flex:0 0 135px}
+.site-public .top-bar-editorial .container-farol>div:first-child span:last-child,.site-public .top-bar-editorial .container-farol>div:last-child a{display:none}
+@media(max-width:1180px){.site-public .nav-editorial-link{padding-left:7px;padding-right:7px;font-size:8px}.site-public .site-nav form{flex-basis:110px}}

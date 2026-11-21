@@ -32,21 +32,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. Menu Mobile Toggle
+  // 3. Menu móvel (atributo hidden + aria-expanded) e "Mais editorias"
   const btnMenuToggle = document.getElementById('btn-mobile-menu-toggle');
   const mobileMenu = document.getElementById('mobile-menu');
+  const setMenu = (open) => {
+    if (!btnMenuToggle || !mobileMenu) return;
+    mobileMenu.hidden = !open;
+    btnMenuToggle.setAttribute('aria-expanded', String(open));
+    btnMenuToggle.setAttribute('aria-label', open ? 'Fechar menu' : 'Abrir menu');
+  };
   if (btnMenuToggle && mobileMenu) {
-    btnMenuToggle.addEventListener('click', () => {
-      const isHidden = mobileMenu.classList.contains('hidden');
-      if (isHidden) {
-        mobileMenu.classList.remove('hidden');
-        btnMenuToggle.setAttribute('aria-expanded', 'true');
-      } else {
-        mobileMenu.classList.add('hidden');
-        btnMenuToggle.setAttribute('aria-expanded', 'false');
-      }
-    });
+    btnMenuToggle.addEventListener('click', () => setMenu(mobileMenu.hidden));
+    window.matchMedia('(min-width: 1024px)').addEventListener('change', (ev) => { if (ev.matches) setMenu(false); });
   }
+  const moreMenu = document.querySelector('.nav__more');
+  document.addEventListener('click', (e) => {
+    if (moreMenu && moreMenu.open && !moreMenu.contains(e.target)) moreMenu.open = false;
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (moreMenu && moreMenu.open) { moreMenu.open = false; moreMenu.querySelector('summary').focus(); }
+    if (mobileMenu && !mobileMenu.hidden) { setMenu(false); btnMenuToggle.focus(); }
+  });
 
   // 4. Modal / Lightbox de Imagens
   const imageModal = document.getElementById('image-lightbox');

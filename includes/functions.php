@@ -39,6 +39,32 @@ function verify_csrf(?string $token): bool {
 }
 
 /**
+ * Formata data em português, sem depender de locale/intl do servidor.
+ * Aceita os tokens de date(); "F" vira o mês por extenso e "M" a abreviação (jan, fev...).
+ * Use "\\" para escapar caracteres literais, como em date().
+ */
+function format_date_ptbr(?string $date, string $format = 'd/m/Y'): ?string {
+    if (empty($date)) return null;
+    $ts = strtotime($date);
+    if ($ts === false) return null;
+
+    $meses = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    $abrev = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+    $n = (int)date('n', $ts) - 1;
+
+    $out = '';
+    $len = strlen($format);
+    for ($i = 0; $i < $len; $i++) {
+        $ch = $format[$i];
+        if ($ch === '\\' && $i + 1 < $len) { $out .= $format[++$i]; continue; }
+        if ($ch === 'F') { $out .= $meses[$n]; continue; }
+        if ($ch === 'M') { $out .= $abrev[$n]; continue; }
+        $out .= date($ch, $ts);
+    }
+    return $out;
+}
+
+/**
  * Gera slug limpo para URLs amigáveis
  */
 function slugify(string $text): string {

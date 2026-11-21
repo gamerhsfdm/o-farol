@@ -8,6 +8,29 @@ require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDBConnection();
 $home_settings = get_site_settings();
+$ultimas_noticias = [];
+$mais_lidas = [];
+
+function home_format_date(?string $date, string $format = 'd/m/Y H:i'): ?string {
+    if (empty($date) || strtotime($date) === false) return null;
+    return format_date_ptbr($date, $format);
+}
+
+function home_author_names(array $article): ?string {
+    if (empty($article['autores'])) return null;
+    $names = array_filter(array_map(fn($author) => $author['nome'] ?? null, $article['autores']));
+    return $names ? implode(' e ', $names) : null;
+}
+if ($pdo) {
+    try {
+        $stmt = $pdo->query("SELECT n.id, n.titulo, n.subtitulo, n.slug, n.imagem_capa, n.publicado_em, n.atualizado_em, c.nome AS categoria_nome, (SELECT GROUP_CONCAT(a.nome SEPARATOR ' e ') FROM autores a JOIN noticia_autores na ON na.autor_id = a.id WHERE na.noticia_id = n.id) AS autores_nomes FROM noticias n JOIN categorias c ON c.id = n.categoria_id WHERE n.status = 'publicado' ORDER BY n.publicado_em DESC LIMIT 5");
+        $ultimas_noticias = $stmt->fetchAll();
+        $stmt = $pdo->query("SELECT n.id, n.titulo, n.slug, n.visualizacoes, c.nome AS categoria_nome FROM noticias n JOIN categorias c ON c.id = n.categoria_id WHERE n.status = 'publicado' ORDER BY n.visualizacoes DESC, n.publicado_em DESC LIMIT 5");
+        $mais_lidas = $stmt->fetchAll();
+    } catch (Exception $e) {
+        error_log('O Farol: falha ao carregar resumos da capa: ' . $e->getMessage());
+    }
+}
 
 // 1. Manchete Hero de Alto Impacto
 $hero = null;
@@ -35,7 +58,7 @@ if ($pdo) {
 $ciencia = null;
 if ($pdo) {
     try {
-        $stmt = $pdo->prepare("SELECT n.*, c.nome as categoria_nome FROM noticias n 
+        $stmt = $pdo->prepare("SELECT n.*, c.nome as categoria_nome, c.slug AS categoria_slug FROM noticias n 
                                JOIN categorias c ON n.categoria_id = c.id 
                                WHERE n.status = 'publicado' AND n.posicao_homepage = 'ciencia_tecnica' 
                                LIMIT 1");
@@ -54,7 +77,7 @@ $jogos_noticia = null;
 $jogos_tabela = [];
 if ($pdo) {
     try {
-        $stmt = $pdo->prepare("SELECT * FROM noticias WHERE status = 'publicado' AND posicao_homepage = 'jogos_esportes' LIMIT 1");
+        $stmt = $pdo->prepare("SELECT n.*, c.nome AS categoria_nome, c.slug AS categoria_slug FROM noticias n JOIN categorias c ON c.id = n.categoria_id WHERE n.status = 'publicado' AND n.posicao_homepage = 'jogos_esportes' LIMIT 1");
         $stmt->execute();
         $jogos_noticia = $stmt->fetch();
         if ($jogos_noticia) {
@@ -72,7 +95,7 @@ if ($pdo) {
 $cultura_noticias = [];
 if ($pdo) {
     try {
-        $stmt = $pdo->prepare("SELECT n.*, c.nome as categoria_nome FROM noticias n 
+        $stmt = $pdo->prepare("SELECT n.*, c.nome as categoria_nome, c.slug AS categoria_slug FROM noticias n 
                                JOIN categorias c ON n.categoria_id = c.id 
                                WHERE n.status = 'publicado' AND n.posicao_homepage = 'cultura_empreendedorismo' 
                                ORDER BY n.ordem_home ASC LIMIT 2");
@@ -137,9 +160,24 @@ if ($pdo) {
         $flagrante = $stmt->fetch();
     } catch (Exception $e) {}
 }
+
+require __DIR__ . '/includes/components/home-reference.php';
+require __DIR__ . '/includes/footer.php';
+exit;
 ?>
 
 <main id="conteudo-principal" class="container-farol py-8 site-home">
+
+  <?php
+    $atalhos_home = [];
+    if (!empty($home_settings['modulo_ciencia']) && $ciencia) $atalhos_home['Ciência'] = 'ciencia';
+    if (!empty($home_settings['modulo_jogos']) && $jogos_noticia) $atalhos_home['Jogos'] = 'jogos';
+    if (!empty($home_settings['modulo_cultura']) && $cultura_noticias) $atalhos_home['Cultura'] = 'cultura';
+    if (!empty($home_settings['modulo_opiniao']) && $opiniao) $atalhos_home['Opinião'] = 'opiniao';
+  ?>
+  <?php if ($atalhos_home): ?>
+    <nav class="home-quick-links" aria-label="Ir para editorias"><span>Ir para:</span><?php foreach ($atalhos_home as $label => $target): ?><a href="#<?= e($target) ?>"><?= e($label) ?></a><?php endforeach; ?></nav>
+  <?php endif; ?>
 
   <!-- ========================================================
        1. MANCHETE HERO DE GRANDE IMPACTO EDITORIAL
@@ -226,24 +264,45 @@ if ($pdo) {
         <!-- Bloco de Fotografia com Lightbox (5 Colunas) -->
         <div class="lg:col-span-5">
           <div class="editorial-card p-1 bg-white">
+            <?php if (!empty($hero['imagem_capa'])): ?>
             <div class="img-zoom-wrapper rounded overflow-hidden">
               <img src="<?= BASE_URL ?>/<?= e($hero['imagem_capa']) ?>" 
                    alt="<?= e($hero['titulo']) ?>" 
                    data-caption="<?= e($hero['legenda_capa'] ?? '') ?>"
                    class="w-full h-72 sm:h-96 object-cover zoomable-image">
             </div>
+            <?php else: ?>
+              <div class="card-no-image" style="--card-category-color: <?= e($hero['categoria_cor'] ?: '#0f4c5c') ?>"><span class="card-no-image__label"><?= e($hero['categoria_nome']) ?></span><span class="card-no-image__mark">OF</span></div>
+            <?php endif; ?>
             
             <?php if (!empty($hero['legenda_capa']) || !empty($hero['credito_foto'])): ?>
-              <div class="p-3 bg-[#fbfbf9] text-xs text-gray-600 font-sans border-t border-gray-100 rounded-b">
+              <div class="hero-photo-caption">
                 <p class="leading-snug"><?= e($hero['legenda_capa']) ?></p>
                 <?php if (!empty($hero['credito_foto'])): ?>
-                  <p class="text-[10px] text-gray-400 text-right mt-1.5 font-medium"><?= e($hero['credito_foto']) ?></p>
+                  <span class="hero-photo-caption__credit"><?= e($hero['credito_foto']) ?></span>
                 <?php endif; ?>
               </div>
             <?php endif; ?>
           </div>
         </div>
 
+      </div>
+      <div class="hero-context" aria-label="Contexto editorial">
+        <?php if ($author_names = home_author_names($hero)): ?><span>Por <strong><?= e($author_names) ?></strong></span><?php endif; ?>
+        <?php if ($published = home_format_date($hero['publicado_em'] ?? null, 'd/m/Y')): ?><span><?= e($published) ?></span><?php endif; ?>
+        <span><?= e((string)$hero['tempo_leitura']) ?> min de leitura</span><span><?= e($hero['categoria_nome']) ?></span>
+        <?php if ($updated = home_format_date($hero['atualizado_em'] ?? null)): ?><span>Atualizado em <?= e($updated) ?></span><?php endif; ?>
+      </div>
+    </section>
+  <?php endif; ?>
+
+  <?php if (!empty($ultimas_noticias)): ?>
+    <section class="home-latest" aria-labelledby="ultimas-noticias">
+      <div class="home-section-title"><h2 id="ultimas-noticias">Últimas notícias</h2><span>Atualizado em <?= date('d/m/Y H:i') ?></span></div>
+      <div class="home-latest__grid">
+        <?php foreach ($ultimas_noticias as $ultima): ?>
+          <article><span><?= e($ultima['categoria_nome']) ?></span><a href="<?= BASE_URL ?>/noticia.php?slug=<?= urlencode((string)$ultima['slug']) ?>"><?= e($ultima['titulo']) ?></a><time datetime="<?= e((string)$ultima['publicado_em']) ?>"><?= date('d/m', strtotime((string)$ultima['publicado_em'])) ?></time></article>
+        <?php endforeach; ?>
       </div>
     </section>
   <?php endif; ?>
@@ -257,7 +316,7 @@ if ($pdo) {
     <div class="lg:col-span-8 space-y-10">
       
       <!-- SEÇÃO 1: CIÊNCIA & PRÁTICA TÉCNICA -->
-      <?php if (!empty($home_settings['modulo_ciencia'])): ?><section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_ciencia'])): ?><section id="ciencia" class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-[#0f4c5c] inline-block"></span>
@@ -268,7 +327,8 @@ if ($pdo) {
 
         <?php if ($ciencia): ?>
           <div class="grid grid-cols-1 sm:grid-cols-12 gap-6 items-start">
-            <div class="sm:col-span-5 img-zoom-wrapper rounded overflow-hidden border border-gray-200">
+            <div class="sm:col-span-5 rounded overflow-hidden border border-gray-200">
+              <?php if (!empty($ciencia['imagem_capa'])): ?><div class="img-zoom-wrapper">
               <img src="<?= BASE_URL ?>/<?= e($ciencia['imagem_capa']) ?>" 
                    alt="<?= e($ciencia['titulo']) ?>" 
                    data-caption="<?= e($ciencia['legenda_capa'] ?? '') ?>"
@@ -276,6 +336,7 @@ if ($pdo) {
               <?php if (!empty($ciencia['legenda_capa'])): ?>
                 <p class="p-2 bg-gray-50 text-[10px] text-gray-500 leading-tight"><?= e($ciencia['legenda_capa']) ?></p>
               <?php endif; ?>
+              </div><?php else: ?><div class="card-no-image"><span class="card-no-image__label"><?= e($ciencia['categoria_nome']) ?></span><span class="card-no-image__mark">OF</span></div><?php endif; ?>
             </div>
             
             <div class="sm:col-span-7 flex flex-col justify-between h-full">
@@ -303,7 +364,7 @@ if ($pdo) {
       </section><?php endif; ?>
 
       <!-- SEÇÃO 2: JOGOS ESCOLARES INTERCLASSES -->
-      <?php if (!empty($home_settings['modulo_jogos'])): ?><section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_jogos'])): ?><section id="jogos" class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-[#b91c1c] inline-block"></span>
@@ -359,7 +420,7 @@ if ($pdo) {
       </section><?php endif; ?>
 
       <!-- SEÇÃO 3: CULTURA & EMPREENDEDORISMO -->
-      <?php if (!empty($home_settings['modulo_cultura'])): ?><section class="editorial-card p-6 sm:p-7">
+      <?php if (!empty($home_settings['modulo_cultura'])): ?><section id="cultura" class="editorial-card p-6 sm:p-7">
         <div class="section-header-modern">
           <h3 class="text-xl sm:text-2xl flex items-center gap-2">
             <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
@@ -394,7 +455,7 @@ if ($pdo) {
       <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
         
         <!-- Coluna de Opinião (7 Colunas) -->
-        <div class="md:col-span-7 editorial-card p-6">
+        <div id="opiniao" class="md:col-span-7 editorial-card p-6">
           <div class="flex items-center gap-2 mb-3">
             <span class="editorial-badge badge-crimson text-[9px]">COLUNA DE OPINIÃO</span>
             <span class="text-xs text-gray-400 font-sans uppercase tracking-wider">CIDADANIA &amp; ESCOLA</span>
@@ -458,6 +519,9 @@ if ($pdo) {
 
     <!-- SIDEBAR LATERAL MODERNA (4 Colunas) -->
     <aside class="lg:col-span-4 space-y-6">
+      <?php if (!empty($mais_lidas)): ?>
+        <section class="home-most-read" aria-labelledby="mais-lidas"><div class="home-section-title"><h2 id="mais-lidas">Mais lidas</h2></div><ol><?php foreach ($mais_lidas as $i => $lida): ?><li><span><?= $i + 1 ?></span><a href="<?= BASE_URL ?>/noticia.php?slug=<?= urlencode((string)$lida['slug']) ?>"><?= e($lida['titulo']) ?></a></li><?php endforeach; ?></ol></section>
+      <?php endif; ?>
 
       <!-- MÓDULO 1: CLUBE DO LIVRO (OBRA DO MÊS) -->
       <?php if ($clube_livro): ?>

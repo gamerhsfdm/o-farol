@@ -1,0 +1,14 @@
+/* Jogos: hierarquia tipográfica mais compacta. */
+.ref-games .ref-no-image span{display:none}
+@media(min-width:1024px){
+  .ref-games .ref-section-heading{margin-bottom:24px}
+  .ref-games .ref-section-heading h2{font-size:36px;line-height:1.04}
+  .ref-games .ref-overlay-card--wide{min-height:256px}
+  .ref-games .ref-overlay-card--wide>div{width:48%;padding:20px 24px}
+  .ref-games .ref-overlay-card h3{margin:4px 0 10px;font-size:27px;line-height:1.05;letter-spacing:-.03em}
+  .ref-games .ref-overlay-card p{font-size:14px;line-height:1.42}
+  .ref-games .ref-results{padding:25px}
+  .ref-games .ref-results h3{margin:7px 0 16px;font-size:25px;line-height:1.05}
+  .ref-games .ref-results p{padding:10px 0;font-size:10px}
+  .ref-games .ref-results>span{font-size:9px}
+}

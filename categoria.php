@@ -58,10 +58,10 @@ require_once __DIR__ . '/includes/header.php';
 $total_paginas = ceil($total_noticias / $por_pagina);
 ?>
 
-<main id="conteudo-principal" class="container-farol py-8">
+<main id="conteudo-principal" class="container-farol py-8 site-listing site-category">
   
   <!-- CABEÇALHO DA SEÇÃO / EDITORIA -->
-  <div class="editorial-card p-6 sm:p-8 mb-8 bg-white border-l-4 border-[#b91c1c]">
+  <header class="listing-masthead editorial-card p-6 sm:p-8 mb-8 bg-white border-l-4 border-[#b91c1c]" style="border-left-color: <?= e((string)($categoria['cor'] ?? '#b91c1c')) ?>">
     <div class="flex items-center gap-2 mb-2">
       <span class="editorial-badge badge-crimson text-[9px]">CADERNO TEMÁTICO</span>
       <span class="text-xs text-gray-400 font-sans uppercase tracking-wider"><?= $total_noticias ?> publicações</span>
@@ -74,13 +74,13 @@ $total_paginas = ceil($total_noticias / $por_pagina);
         <?= e($categoria['descricao']) ?>
       </p>
     <?php endif; ?>
-  </div>
+  </header>
 
   <!-- GRADE DE NOTÍCIAS DA CATEGORIA -->
   <?php if (!empty($noticias)): ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div class="listing-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <?php foreach ($noticias as $item): ?>
-        <article class="editorial-card flex flex-col justify-between overflow-hidden bg-white">
+        <article class="news-card editorial-card flex flex-col justify-between overflow-hidden bg-white">
           <div>
             <?php if (!empty($item['imagem_capa'])): ?>
               <div class="img-zoom-wrapper border-b border-gray-200">
