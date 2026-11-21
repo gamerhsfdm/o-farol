@@ -21,65 +21,76 @@ if (!is_dir($uploadDir)) {
 
 // 1. Processar Upload Real de Arquivo
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['arquivo_upload'])) {
-    $file = $_FILES['arquivo_upload'];
-    if ($file['error'] === UPLOAD_ERR_OK) {
-        $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-        $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $mime = finfo_file($finfo, $file['tmp_name']);
-        finfo_close($finfo);
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
+    } else {
+        $file = $_FILES['arquivo_upload'];
+        if ($file['error'] === UPLOAD_ERR_OK) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+            $finfo = finfo_open(FILEINFO_MIME_TYPE);
+            $mime = finfo_file($finfo, $file['tmp_name']);
+            finfo_close($finfo);
 
-        if (in_array($mime, $allowedTypes, true)) {
-            $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
-            $novoNome = 'farol_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-            $destino = $uploadDir . $novoNome;
-            $caminhoRelativo = 'uploads/media/' . $novoNome;
+            if (in_array($mime, $allowedTypes, true)) {
+                $ext = pathinfo($file['name'], PATHINFO_EXTENSION);
+                $novoNome = 'farol_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $destino = $uploadDir . $novoNome;
+                $caminhoRelativo = 'uploads/media/' . $novoNome;
 
-            if (move_uploaded_file($file['tmp_name'], $destino)) {
-                $tamanho = (int)$file['size'];
-                $alt = trim($_POST['alt_text'] ?? pathinfo($file['name'], PATHINFO_FILENAME));
-                $legenda = trim($_POST['legenda'] ?? '');
-                $credito = trim($_POST['credito'] ?? 'Redação O Farol');
-                $usuarioId = $_SESSION['usuario_id'] ?? null;
+                if (move_uploaded_file($file['tmp_name'], $destino)) {
+                    $tamanho = (int)$file['size'];
+                    $alt = trim($_POST['alt_text'] ?? pathinfo($file['name'], PATHINFO_FILENAME));
+                    $legenda = trim($_POST['legenda'] ?? '');
+                    $credito = trim($_POST['credito'] ?? 'Redação O Farol');
+                    $usuarioId = $_SESSION['usuario_id'] ?? null;
 
-                if ($pdo) {
-                    try {
-                        $stmt = $pdo->prepare("INSERT INTO media_library (nome_arquivo, caminho, tipo_mime, tamanho_bytes, alt_text, legenda, credito, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
-                        $stmt->execute([$file['name'], $caminhoRelativo, $mime, $tamanho, $alt, $legenda, $credito, $usuarioId]);
-                        $mensagem = "Arquivo '{$file['name']}' enviado com sucesso para a biblioteca!";
-                    } catch (Exception $e) {
-                        $erro = "Erro ao registrar mídia no banco: " . $e->getMessage();
+                    if ($pdo) {
+                        try {
+                            $stmt = $pdo->prepare("INSERT INTO media_library (nome_arquivo, caminho, tipo_mime, tamanho_bytes, alt_text, legenda, credito, criado_por, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                            $stmt->execute([$file['name'], $caminhoRelativo, $mime, $tamanho, $alt, $legenda, $credito, $usuarioId]);
+                            $novoId = (int)$pdo->lastInsertId();
+                            log_audit('upload_media', 'media_library', $novoId, "Arquivo '{$file['name']}' enviado para a biblioteca");
+                            $mensagem = "Arquivo '{$file['name']}' enviado com sucesso para a biblioteca!";
+                        } catch (Exception $e) {
+                            $erro = "Erro ao registrar mídia no banco: " . $e->getMessage();
+                        }
+                    } else {
+                        $mensagem = "Arquivo salvo na pasta de uploads com sucesso!";
                     }
                 } else {
-                    $mensagem = "Arquivo salvo na pasta de uploads com sucesso!";
+                    $erro = "Falha ao mover arquivo enviado para o servidor.";
                 }
             } else {
-                $erro = "Falha ao mover arquivo enviado para o servidor.";
+                $erro = "Formato de arquivo não suportado. Por favor, envie JPG, PNG ou WebP.";
             }
         } else {
-            $erro = "Formato de arquivo não suportado. Por favor, envie JPG, PNG ou WebP.";
+            $erro = "Erro no upload do arquivo. Código: " . $file['error'];
         }
-    } else {
-        $erro = "Erro no upload do arquivo. Código: " . $file['error'];
     }
 }
 
 // 2. Atualizar Metadados de Mídia (Alt, Legenda, Crédito)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['atualizar_metadados'])) {
-    $midiaId = (int)($_POST['midia_id'] ?? 0);
-    $alt = trim($_POST['alt_text'] ?? '');
-    $legenda = trim($_POST['legenda'] ?? '');
-    $credito = trim($_POST['credito'] ?? '');
-
-    if ($pdo && $midiaId > 0) {
-        try {
-            $stmt = $pdo->prepare("UPDATE media_library SET alt_text = ?, legenda = ?, credito = ? WHERE id = ?");
-            $stmt->execute([$alt, $legenda, $credito, $midiaId]);
-            $mensagem = "Metadados do arquivo atualizados com sucesso!";
-        } catch (Exception $e) {
-            $erro = "Erro ao atualizar metadados: " . $e->getMessage();
-        }
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
     } else {
-        $mensagem = "Metadados atualizados com sucesso!";
+        $midiaId = (int)($_POST['midia_id'] ?? 0);
+        $alt = trim($_POST['alt_text'] ?? '');
+        $legenda = trim($_POST['legenda'] ?? '');
+        $credito = trim($_POST['credito'] ?? '');
+
+        if ($pdo && $midiaId > 0) {
+            try {
+                $stmt = $pdo->prepare("UPDATE media_library SET alt_text = ?, legenda = ?, credito = ? WHERE id = ?");
+                $stmt->execute([$alt, $legenda, $credito, $midiaId]);
+                log_audit('editar_media', 'media_library', $midiaId, "Metadados de mídia #{$midiaId} atualizados");
+                $mensagem = "Metadados do arquivo atualizados com sucesso!";
+            } catch (Exception $e) {
+                $erro = "Erro ao atualizar metadados: " . $e->getMessage();
+            }
+        } else {
+            $mensagem = "Metadados atualizados com sucesso!";
+        }
     }
 }
 

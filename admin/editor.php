@@ -115,8 +115,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao_salvar'])) {
         if ($pdo) {
             try {
                 if ($id > 0) {
-                    $stmtUp = $pdo->prepare("UPDATE noticias SET categoria_id = ?, titulo = ?, subtitulo = ?, conteudo = ?, imagem_capa = ?, slug = ?, tempo_leitura = ?, professor_orientador = ?, status = ?, atualizado_em = NOW() WHERE id = ?");
-                    $stmtUp->execute([$categoria_id, $titulo, $subtitulo, $conteudo, $imagem_capa, $slug, $tempo_leitura, $orientador, $status_novo, $id]);
+                    $stmtUp = $pdo->prepare("UPDATE noticias SET categoria_id = ?, titulo = ?, subtitulo = ?, conteudo = ?, imagem_capa = ?, slug = ?, tempo_leitura = ?, professor_orientador = ?, status = ?, publicado_em = CASE WHEN ? = 'publicado' AND publicado_em IS NULL THEN NOW() ELSE publicado_em END, atualizado_em = NOW() WHERE id = ?");
+                    $stmtUp->execute([$categoria_id, $titulo, $subtitulo, $conteudo, $imagem_capa, $slug, $tempo_leitura, $orientador, $status_novo, $status_novo, $id]);
+
+                    // Sincroniza autor na tabela pivô
+                    if ($autor_id > 0) {
+                        $stmtCheckNa = $pdo->prepare("SELECT COUNT(*) FROM noticia_autores WHERE noticia_id = ?");
+                        $stmtCheckNa->execute([$id]);
+                        if ((int)$stmtCheckNa->fetchColumn() > 0) {
+                            $stmtUpNa = $pdo->prepare("UPDATE noticia_autores SET autor_id = ? WHERE noticia_id = ? LIMIT 1");
+                            $stmtUpNa->execute([$autor_id, $id]);
+                        } else {
+                            $stmtInNa = $pdo->prepare("INSERT INTO noticia_autores (noticia_id, autor_id) VALUES (?, ?)");
+                            $stmtInNa->execute([$id, $autor_id]);
+                        }
+                    }
+
+                    // Registra versão no histórico
+                    try {
+                        $stmtVer = $pdo->prepare("SELECT COALESCE(MAX(versao), 0) + 1 FROM noticia_versoes WHERE noticia_id = ?");
+                        $stmtVer->execute([$id]);
+                        $proximaVersao = (int)$stmtVer->fetchColumn();
+                        $uid = $_SESSION['usuario_id'] ?? null;
+                        $stmtInVer = $pdo->prepare("INSERT INTO noticia_versoes (noticia_id, usuario_id, titulo, subtitulo, conteudo, imagem_capa, versao, motivo_alteracao, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 'Edição no CMS', NOW())");
+                        $stmtInVer->execute([$id, $uid, $titulo, $subtitulo, $conteudo, $imagem_capa, $proximaVersao]);
+                    } catch (Exception $eVer) {
+                        // Não interrompe fluxo principal se histórico falhar
+                    }
+
+                    log_audit('editar_noticia', 'noticias', $id, "Reportagem '{$titulo}' atualizada");
                     $mensagem = "Reportagem atualizada com sucesso como " . strtoupper($status_novo) . "!";
                 } else {
                     $stmtIn = $pdo->prepare("INSERT INTO noticias (categoria_id, titulo, subtitulo, conteudo, imagem_capa, slug, tempo_leitura, professor_orientador, status, publicado_em, criado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'publicado' THEN NOW() ELSE NULL END, NOW())");
@@ -125,9 +152,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao_salvar'])) {
                     
                     // Vincula autor na tabela pivô
                     if ($autor_id > 0) {
-                        $stmtNa = $pdo->prepare("INSERT IGNORE INTO noticia_autores (noticia_id, autor_id) VALUES (?, ?)");
+                        $stmtNa = $pdo->prepare("INSERT INTO noticia_autores (noticia_id, autor_id) VALUES (?, ?)");
                         $stmtNa->execute([$id, $autor_id]);
                     }
+
+                    // Versão inicial #1
+                    try {
+                        $uid = $_SESSION['usuario_id'] ?? null;
+                        $stmtInVer = $pdo->prepare("INSERT INTO noticia_versoes (noticia_id, usuario_id, titulo, subtitulo, conteudo, imagem_capa, versao, motivo_alteracao, criado_em) VALUES (?, ?, ?, ?, ?, ?, 1, 'Versão inicial', NOW())");
+                        $stmtInVer->execute([$id, $uid, $titulo, $subtitulo, $conteudo, $imagem_capa]);
+                    } catch (Exception $eVer) {}
+
+                    log_audit('criar_noticia', 'noticias', $id, "Nova reportagem '{$titulo}' criada");
                     $mensagem = "Reportagem criada e salva com sucesso como " . strtoupper($status_novo) . "!";
                 }
                 // Atualiza array em memória

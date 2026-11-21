@@ -10,10 +10,13 @@ require_once __DIR__ . '/header.php';
 $pdo = getDBConnection();
 $mensagem = '';
 $erro = '';
+$erro_carga = '';
 
 // Criar nova edição
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_edicao'])) {
-    if (verify_csrf($_POST['csrf_token'] ?? '')) {
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
+    } else {
         $numero = (int)($_POST['numero'] ?? 0);
         $titulo = trim($_POST['titulo'] ?? '');
         $mes_ano = trim($_POST['mes_ano'] ?? '');
@@ -27,17 +30,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_edicao'])) {
             try {
                 $stmt = $pdo->prepare("INSERT INTO edicoes (numero, titulo, mes_ano, data_publicacao, capa_url, descricao, destaque, criado_em) VALUES (?, ?, ?, ?, ?, ?, 0, NOW())");
                 $stmt->execute([$numero, $titulo, $mes_ano, $data_pub, $capa_url, $descricao]);
+                $novoId = (int)$pdo->lastInsertId();
+                log_audit('criar_edicao', 'edicoes', $novoId, "Edição Nº {$numero} cadastrada");
                 $mensagem = "Edição Nº {$numero} cadastrada com sucesso!";
             } catch (Exception $e) {
                 $erro = "Erro ao cadastrar edição: " . $e->getMessage();
             }
         } else {
-            $mensagem = "Edição cadastrada com sucesso (modo demonstração)!";
+            $erro = "Banco de dados temporariamente inacessível.";
         }
     }
 }
 
-// Consultar edições
+// Consultar edições reais do banco
 $edicoes = [];
 if ($pdo) {
     try {
@@ -47,129 +52,105 @@ if ($pdo) {
                              GROUP BY e.id 
                              ORDER BY e.numero DESC");
         $edicoes = $stmt->fetchAll();
-    } catch (Exception $e) {}
-}
-
-if (empty($edicoes)) {
-    $edicoes = [
-        ['id' => 1, 'numero' => 18, 'titulo' => 'Edição Especial: Protagonismo Estudantil e Ciência', 'mes_ano' => 'Junho de 2026', 'data_publicacao' => '2026-06-15', 'capa_url' => 'assets/images/hero-premiacao.jpg', 'total_noticias' => 14, 'destaque' => 1],
-        ['id' => 2, 'numero' => 17, 'titulo' => 'Tecnologia Aplicada e Inovação na Escola', 'mes_ano' => 'Maio de 2026', 'data_publicacao' => '2026-05-15', 'capa_url' => 'assets/images/ciencia-lab.jpg', 'total_noticias' => 12, 'destaque' => 0],
-        ['id' => 3, 'numero' => 16, 'titulo' => 'Artes, Literatura e Sociedade', 'mes_ano' => 'Abril de 2026', 'data_publicacao' => '2026-04-15', 'capa_url' => 'assets/images/livro-torto-arado.jpg', 'total_noticias' => 10, 'destaque' => 0]
-    ];
+    } catch (Exception $e) {
+        $erro_carga = $e->getMessage();
+    }
 }
 ?>
 
-<div class="flex flex-wrap items-center justify-between gap-4 mb-6">
-  <div>
-    <div class="text-[10px] font-bold text-[#b8323b] uppercase tracking-wider mb-1">O FAROL / PUBLICAÇÃO</div>
-    <h1 class="text-3xl font-editorial-heading font-bold text-[#111827]">Edições do Jornal</h1>
-    <p class="text-xs text-gray-500 mt-1">Gerencie as publicações mensais, impressas e digitais do O Farol.</p>
-  </div>
-  <button type="button" onclick="document.getElementById('modal-nova-edicao').classList.remove('hidden')" class="btn-admin-red">
-    + Nova Edição
-  </button>
-</div>
+<?= ui_page_header('Edições do jornal', 'Gerencie as publicações mensais, impressas e digitais de O Farol.',
+    '<button type="button" class="btn btn--primary" data-modal-open="modal-nova-edicao">' . ui_icon('plus') . ' Nova edição</button>') ?>
 
-<?php if ($mensagem): ?>
-  <div class="p-3 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded flex items-center justify-between">
-    <span>✓ <?= e($mensagem) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-emerald-700 font-bold">×</button>
-  </div>
-<?php endif; ?>
+<?= ui_alerts($mensagem, $erro) ?>
+<?php if ($erro_carga !== ''): ?><?= ui_load_error($erro_carga) ?><?php endif; ?>
 
-<?php if ($erro): ?>
-  <div class="p-3 mb-6 bg-red-50 border border-red-200 text-red-800 text-xs rounded flex items-center justify-between">
-    <span>⚠️ <?= e($erro) ?></span>
-    <button type="button" onclick="this.parentElement.remove()" class="text-red-700 font-bold">×</button>
+<?php if (empty($edicoes)): ?>
+  <div class="card">
+    <?= ui_empty('newspaper', 'Nenhuma edição cadastrada', 'Cadastre a primeira edição digital ou impressa do jornal.',
+        '<button type="button" class="btn btn--primary" data-modal-open="modal-nova-edicao">' . ui_icon('plus') . ' Nova edição</button>') ?>
   </div>
-<?php endif; ?>
-
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-  <?php foreach ($edicoes as $ed): ?>
-    <div class="admin-card overflow-hidden flex flex-col justify-between hover:border-gray-300 transition-colors">
-      <div class="relative h-48 bg-gray-100 overflow-hidden">
-        <img src="<?= BASE_URL ?>/<?= e($ed['capa_url']) ?>" alt="Capa Edição <?= e((string)$ed['numero']) ?>" class="w-full h-full object-cover">
-        <div class="absolute top-3 left-3 flex items-center gap-2">
-          <span class="bg-[#111827]/90 text-white font-mono text-[10.5px] font-bold px-2 py-0.5 rounded shadow">
-            Nº <?= e((string)$ed['numero']) ?>
-          </span>
-          <?php if (!empty($ed['destaque'])): ?>
-            <span class="bg-[#b8323b] text-white text-[9.5px] font-bold px-2 py-0.5 rounded shadow uppercase">
-              Atual
-            </span>
+<?php else: ?>
+  <div class="cols cols--3">
+    <?php foreach ($edicoes as $ed): ?>
+      <div class="card card--hover card--flush" style="display:flex;flex-direction:column;justify-content:space-between">
+        <div style="position:relative;height:180px;background:var(--surface-2);overflow:hidden">
+          <?php if (!empty($ed['capa_url'])): ?>
+            <img src="<?= BASE_URL ?>/<?= e((string)$ed['capa_url']) ?>" alt="Capa Edição <?= e((string)$ed['numero']) ?>" style="width:100%;height:100%;object-fit:cover">
+          <?php else: ?>
+            <div style="width:100%;height:100%;display:grid;place-items:center;color:var(--muted)">Sem capa</div>
           <?php endif; ?>
-        </div>
-      </div>
-
-      <div class="p-5 flex-1 flex flex-col justify-between">
-        <div>
-          <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1"><?= e($ed['mes_ano']) ?></span>
-          <h3 class="text-base font-bold text-gray-900 font-editorial-heading leading-snug mb-2"><?= e($ed['titulo']) ?></h3>
-          <p class="text-xs text-gray-500 line-clamp-2"><?= e($ed['descricao'] ?? 'Edição regular do jornal escolar.') ?></p>
+          <div style="position:absolute;top:10px;left:10px;display:flex;gap:6px">
+            <?= ui_badge('Nº ' . (string)$ed['numero'], 'brand') ?>
+            <?php if (!empty($ed['destaque'])): ?>
+              <?= ui_badge('Atual', 'accent') ?>
+            <?php endif; ?>
+          </div>
         </div>
 
-        <div class="pt-4 mt-4 border-t border-[#e8edef] flex items-center justify-between text-xs">
-          <span class="text-gray-400"><?= e((string)$ed['total_noticias']) ?> matérias</span>
-          <a href="<?= BASE_URL ?>/admin/noticias.php?edicao=<?= $ed['id'] ?>" class="text-[#0e2f33] font-bold hover:underline">
-            Ver matérias ›
-          </a>
+        <div style="padding:16px;flex:1;display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <span class="muted text-sm font-bold uppercase" style="letter-spacing:0.04em;display:block;margin-bottom:4px"><?= e($ed['mes_ano']) ?></span>
+            <h3 class="strong" style="font-size:16px;line-height:1.25;margin-bottom:8px"><?= e($ed['titulo']) ?></h3>
+            <p class="muted text-sm clamp-2"><?= e($ed['descricao'] ?: 'Edição oficial do jornal escolar.') ?></p>
+          </div>
+
+          <div class="card__foot" style="margin-top:14px;padding:12px 0 0 0">
+            <span><?= (int)$ed['total_noticias'] ?> matérias</span>
+            <a href="<?= BASE_URL ?>/admin/noticias.php?edicao=<?= (int)$ed['id'] ?>" class="link text-sm strong">Ver matérias →</a>
+          </div>
         </div>
       </div>
-    </div>
-  <?php endforeach; ?>
-</div>
+    <?php endforeach; ?>
+  </div>
+<?php endif; ?>
 
 <!-- MODAL NOVA EDIÇÃO -->
-<div id="modal-nova-edicao" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
-  <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-[#e8edef]">
-    <div class="flex items-center justify-between pb-3 mb-4 border-b border-gray-100">
-      <h3 class="text-sm font-bold text-gray-900 font-editorial-heading">Nova Edição do Jornal</h3>
-      <button type="button" onclick="document.getElementById('modal-nova-edicao').classList.add('hidden')" class="text-gray-400 hover:text-black">×</button>
+<div id="modal-nova-edicao" class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-nova-edicao">
+  <form method="POST" action="" class="modal__panel">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
+    <div class="modal__head">
+      <h3 class="modal__title" id="titulo-nova-edicao">Nova Edição do Jornal</h3>
+      <button type="button" class="icon-btn icon-btn--sm" data-modal-close aria-label="Fechar"><?= ui_icon('x') ?></button>
     </div>
 
-    <form method="POST" action="" class="space-y-4">
-      <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Número *</label>
-          <input type="number" name="numero" required min="1" placeholder="Ex: 19" class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none">
+    <div class="modal__body stack stack--sm">
+      <div class="form-grid">
+        <div class="field">
+          <label class="label" for="ed-numero">Número *</label>
+          <input type="number" id="ed-numero" name="numero" required min="1" placeholder="Ex: 19" class="input">
         </div>
-        <div>
-          <label class="block text-xs font-medium text-gray-700 mb-1">Mês / Ano *</label>
-          <input type="text" name="mes_ano" required placeholder="Ex: Julho de 2026" class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none">
+        <div class="field">
+          <label class="label" for="ed-mesano">Mês / Ano *</label>
+          <input type="text" id="ed-mesano" name="mes_ano" required placeholder="Ex: Julho de 2026" class="input">
         </div>
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Título Editorial da Edição *</label>
-        <input type="text" name="titulo" required placeholder="Ex: Juventude, Clima e Futuro" class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none">
+      <div class="field">
+        <label class="label" for="ed-titulo">Título Editorial da Edição *</label>
+        <input type="text" id="ed-titulo" name="titulo" required placeholder="Ex: Juventude, Clima e Futuro" class="input">
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Data de Publicação</label>
-        <input type="date" name="data_publicacao" value="<?= date('Y-m-d') ?>" class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none">
+      <div class="field">
+        <label class="label" for="ed-data">Data de Publicação</label>
+        <input type="date" id="ed-data" name="data_publicacao" value="<?= date('Y-m-d') ?>" class="input">
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Capa da Edição (Caminho ou URL)</label>
-        <input type="text" name="capa_url" value="assets/images/hero-premiacao.jpg" class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none">
+      <div class="field">
+        <label class="label" for="ed-capa">Capa da Edição (Caminho ou URL)</label>
+        <input type="text" id="ed-capa" name="capa_url" value="assets/images/hero-premiacao.jpg" class="input">
       </div>
 
-      <div>
-        <label class="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
-        <textarea name="descricao" rows="2" placeholder="Resumo dos principais tópicos da edição..." class="w-full text-xs p-2.5 border border-gray-200 rounded focus:border-[#b8323b] focus:outline-none"></textarea>
+      <div class="field">
+        <label class="label" for="ed-desc">Descrição</label>
+        <textarea id="ed-desc" name="descricao" rows="2" placeholder="Resumo dos principais tópicos da edição..." class="textarea"></textarea>
       </div>
+    </div>
 
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-gray-100">
-        <button type="button" onclick="document.getElementById('modal-nova-edicao').classList.add('hidden')" class="px-4 py-2 border border-gray-200 rounded text-xs text-gray-700 bg-white hover:bg-gray-50">
-          Cancelar
-        </button>
-        <button type="submit" name="criar_edicao" value="1" class="btn-admin-red">
-          Cadastrar Edição
-        </button>
-      </div>
-    </form>
-  </div>
+    <div class="modal__foot">
+      <button type="button" class="btn" data-modal-close>Cancelar</button>
+      <button type="submit" name="criar_edicao" value="1" class="btn btn--primary">Cadastrar Edição</button>
+    </div>
+  </form>
 </div>
 
 <?php require_once __DIR__ . '/footer.php'; ?>

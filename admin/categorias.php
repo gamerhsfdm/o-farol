@@ -14,37 +14,48 @@ $erro_carga = '';
 
 // Criar nova categoria via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_categoria'])) {
-    $nome = trim($_POST['nome'] ?? '');
-    $descricao = trim($_POST['descricao'] ?? '');
-    $cor = trim($_POST['cor'] ?? '#c0262d');
-    $slug = slugify($nome);
-
-    if (empty($nome)) {
-        $erro = "O nome da categoria é obrigatório.";
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
     } else {
-        if ($pdo) {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO categorias (nome, slug, descricao, cor, ativo, no_menu, ordem) VALUES (?, ?, ?, ?, 1, 1, 99)");
-                $stmt->execute([$nome, $slug, $descricao, $cor]);
-                $mensagem = "Categoria '{$nome}' cadastrada com sucesso!";
-            } catch (Exception $e) {
-                $erro = "Erro ao salvar categoria: " . $e->getMessage();
-            }
+        $nome = trim($_POST['nome'] ?? '');
+        $descricao = trim($_POST['descricao'] ?? '');
+        $cor = trim($_POST['cor'] ?? '#c0262d');
+        $slug = slugify($nome);
+
+        if (empty($nome)) {
+            $erro = "O nome da categoria é obrigatório.";
         } else {
-            $erro = "Banco de dados inacessível no momento.";
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO categorias (nome, slug, descricao, cor, ativo, no_menu, ordem) VALUES (?, ?, ?, ?, 1, 1, 99)");
+                    $stmt->execute([$nome, $slug, $descricao, $cor]);
+                    $novoId = (int)$pdo->lastInsertId();
+                    log_audit('criar_categoria', 'categorias', $novoId, "Categoria '{$nome}' criada");
+                    $mensagem = "Categoria '{$nome}' cadastrada com sucesso!";
+                } catch (Exception $e) {
+                    $erro = "Erro ao salvar categoria: " . $e->getMessage();
+                }
+            } else {
+                $erro = "Banco de dados inacessível no momento.";
+            }
         }
     }
 }
 
 // Alternar status da categoria (Ativar/Ocultar)
 if (isset($_GET['toggle_id']) && $pdo) {
-    try {
-        $idToggle = (int)$_GET['toggle_id'];
-        $stmt = $pdo->prepare("UPDATE categorias SET ativo = NOT ativo WHERE id = ?");
-        $stmt->execute([$idToggle]);
-        $mensagem = "Status da categoria atualizado com sucesso!";
-    } catch (Exception $e) {
-        $erro = "Não foi possível atualizar o status da categoria.";
+    if (!verify_csrf($_GET['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
+    } else {
+        try {
+            $idToggle = (int)$_GET['toggle_id'];
+            $stmt = $pdo->prepare("UPDATE categorias SET ativo = NOT ativo WHERE id = ?");
+            $stmt->execute([$idToggle]);
+            log_audit('toggle_categoria', 'categorias', $idToggle, "Status da categoria #{$idToggle} alternado");
+            $mensagem = "Status da categoria atualizado com sucesso!";
+        } catch (Exception $e) {
+            $erro = "Não foi possível atualizar o status da categoria.";
+        }
     }
 }
 
@@ -95,7 +106,7 @@ if ($pdo) {
           <div class="dropdown" data-dropdown>
             <button type="button" class="icon-btn icon-btn--sm" data-dropdown-toggle aria-label="Ações de <?= e($cat['nome']) ?>" aria-haspopup="true" aria-expanded="false"><?= ui_icon('more') ?></button>
             <div class="dropdown__panel" style="min-width:200px">
-              <a href="?toggle_id=<?= (int)$cat['id'] ?>" class="dropdown__item"><?= ui_icon($cat['ativo'] ? 'lock' : 'check-c') ?> <?= $cat['ativo'] ? 'Ocultar editoria' : 'Ativar editoria' ?></a>
+              <a href="?toggle_id=<?= (int)$cat['id'] ?>&csrf_token=<?= csrf_token() ?>" class="dropdown__item"><?= ui_icon($cat['ativo'] ? 'lock' : 'check-c') ?> <?= $cat['ativo'] ? 'Ocultar editoria' : 'Ativar editoria' ?></a>
               <a href="<?= BASE_URL ?>/admin/editor.php?cat_id=<?= (int)$cat['id'] ?>" class="dropdown__item"><?= ui_icon('pen') ?> Nova matéria</a>
             </div>
           </div>

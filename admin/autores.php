@@ -15,26 +15,32 @@ $erro_carga = '';
 
 // Processar cadastro de novo autor via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cadastrar_autor'])) {
-    $nome = trim($_POST['nome'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $cargo = trim($_POST['cargo'] ?? 'Repórter');
-    $turma = trim($_POST['turma'] ?? '');
-    $bio = trim($_POST['bio'] ?? '');
-    $foto = trim($_POST['foto'] ?? '');
-
-    if (empty($nome)) {
-        $erro = "O nome do autor é obrigatório.";
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
     } else {
-        if ($pdo) {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO autores (nome, email, cargo, turma, biografia, foto, ativo, criado_em) VALUES (?, ?, ?, ?, ?, ?, 1, NOW())");
-                $stmt->execute([$nome, $email, $cargo, $turma, $bio, $foto]);
-                $mensagem = "Autor '{$nome}' cadastrado com sucesso!";
-            } catch (Exception $e) {
-                $erro = "Erro ao cadastrar autor: " . $e->getMessage();
-            }
+        $nome = trim($_POST['nome'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $cargo = trim($_POST['cargo'] ?? 'Repórter');
+        $turma = trim($_POST['turma'] ?? '');
+        $bio = trim($_POST['bio'] ?? '');
+        $foto = trim($_POST['foto'] ?? '');
+
+        if (empty($nome)) {
+            $erro = "O nome do autor é obrigatório.";
         } else {
-            $mensagem = "Autor cadastrado com sucesso (modo visual/demonstração)!";
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO autores (nome, email, cargo, turma, biografia, foto, ativo, criado_em) VALUES (?, ?, ?, ?, ?, ?, 1, NOW())");
+                    $stmt->execute([$nome, $email, $cargo, $turma, $bio, $foto]);
+                    $novoId = (int)$pdo->lastInsertId();
+                    log_audit('criar_autor', 'autores', $novoId, "Autor '{$nome}' cadastrado");
+                    $mensagem = "Autor '{$nome}' cadastrado com sucesso!";
+                } catch (Exception $e) {
+                    $erro = "Erro ao cadastrar autor: " . $e->getMessage();
+                }
+            } else {
+                $erro = "Banco de dados temporariamente inacessível.";
+            }
         }
     }
 }
@@ -159,6 +165,7 @@ if ($pdo) {
 <!-- Modal: novo autor -->
 <div id="modal-novo-autor" class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-novo-autor">
   <form method="POST" action="" class="modal__panel">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
     <div class="modal__head">
       <h3 class="modal__title" id="titulo-novo-autor">Novo autor / repórter</h3>

@@ -19,13 +19,18 @@ $erro_carga = '';
 
 // Exclusão ou arquivamento rápido
 if (isset($_GET['deletar_id']) && $pdo) {
-    try {
-        $delId = (int)$_GET['deletar_id'];
-        $stmtD = $pdo->prepare("DELETE FROM noticias WHERE id = ?");
-        $stmtD->execute([$delId]);
-        $mensagem = "Reportagem excluída com sucesso!";
-    } catch (Exception $e) {
-        $erro = "Não foi possível excluir a reportagem.";
+    if (!verify_csrf($_GET['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
+    } else {
+        try {
+            $delId = (int)$_GET['deletar_id'];
+            $stmtD = $pdo->prepare("DELETE FROM noticias WHERE id = ?");
+            $stmtD->execute([$delId]);
+            log_audit('excluir_noticia', 'noticias', $delId, "Reportagem #{$delId} excluída");
+            $mensagem = "Reportagem excluída com sucesso!";
+        } catch (Exception $e) {
+            $erro = "Não foi possível excluir a reportagem: " . $e->getMessage();
+        }
     }
 }
 
@@ -216,7 +221,7 @@ $qs_base = ['q' => $search_query, 'categoria' => $categoria_filter ?: '', 'autor
                   <?php if ($item['status'] === 'publicado'): ?>
                     <a href="<?= BASE_URL ?>/noticia.php?slug=<?= urlencode((string)$item['slug']) ?>" target="_blank" rel="noopener" class="icon-btn icon-btn--sm" title="Ver no site" aria-label="Ver no site"><?= ui_icon('external') ?></a>
                   <?php endif; ?>
-                  <a href="?deletar_id=<?= (int)$item['id'] ?>" class="icon-btn icon-btn--sm icon-btn--danger" title="Excluir" aria-label="Excluir"
+                  <a href="?deletar_id=<?= (int)$item['id'] ?>&csrf_token=<?= csrf_token() ?>" class="icon-btn icon-btn--sm icon-btn--danger" title="Excluir" aria-label="Excluir"
                      data-confirm="Esta reportagem será excluída permanentemente. Essa ação não pode ser desfeita."
                      data-confirm-title="Excluir notícia?" data-confirm-ok="Excluir"><?= ui_icon('trash') ?></a>
                 </span>

@@ -15,34 +15,39 @@ $erro_carga = '';
 
 // Criar nova enquete via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['criar_enquete'])) {
-    $pergunta = trim($_POST['pergunta'] ?? '');
-    $opcoes_texto = trim($_POST['opcoes'] ?? '');
-    $data_encerramento = trim($_POST['data_encerramento'] ?? date('Y-m-d', strtotime('+7 days')));
-
-    if (empty($pergunta)) {
-        $erro = "A pergunta da enquete é obrigatória.";
+    if (!verify_csrf($_POST['csrf_token'] ?? '')) {
+        $erro = "Sessão inválida ou expirada. Tente novamente.";
     } else {
-        if ($pdo) {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO enquetes (pergunta, data_inicio, data_fim, ativo, criado_em) VALUES (?, NOW(), ?, 1, NOW())");
-                $stmt->execute([$pergunta, $data_encerramento]);
-                $enqueteId = (int)$pdo->lastInsertId();
+        $pergunta = trim($_POST['pergunta'] ?? '');
+        $opcoes_texto = trim($_POST['opcoes'] ?? '');
+        $data_encerramento = trim($_POST['data_encerramento'] ?? date('Y-m-d', strtotime('+7 days')));
 
-                $linhas = explode("\n", $opcoes_texto);
-                $ordem = 1;
-                $stmtOp = $pdo->prepare("INSERT INTO enquete_opcoes (enquete_id, opcao, votos_count, ordem) VALUES (?, ?, 0, ?)");
-                foreach ($linhas as $linha) {
-                    $opcao = trim($linha);
-                    if (!empty($opcao)) {
-                        $stmtOp->execute([$enqueteId, $opcao, $ordem++]);
-                    }
-                }
-                $mensagem = "Enquete criada e ativada com sucesso!";
-            } catch (Exception $e) {
-                $erro = "Erro ao cadastrar enquete: " . $e->getMessage();
-            }
+        if (empty($pergunta)) {
+            $erro = "A pergunta da enquete é obrigatória.";
         } else {
-            $mensagem = "Enquete cadastrada com sucesso (modo visual/demonstração)!";
+            if ($pdo) {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO enquetes (pergunta, data_inicio, data_fim, ativo, criado_em) VALUES (?, NOW(), ?, 1, NOW())");
+                    $stmt->execute([$pergunta, $data_encerramento]);
+                    $enqueteId = (int)$pdo->lastInsertId();
+
+                    $linhas = explode("\n", $opcoes_texto);
+                    $ordem = 1;
+                    $stmtOp = $pdo->prepare("INSERT INTO enquete_opcoes (enquete_id, opcao, votos_count, ordem) VALUES (?, ?, 0, ?)");
+                    foreach ($linhas as $linha) {
+                        $opcao = trim($linha);
+                        if (!empty($opcao)) {
+                            $stmtOp->execute([$enqueteId, $opcao, $ordem++]);
+                        }
+                    }
+                    log_audit('criar_enquete', 'enquetes', $enqueteId, "Enquete '{$pergunta}' criada");
+                    $mensagem = "Enquete criada e ativada com sucesso!";
+                } catch (Exception $e) {
+                    $erro = "Erro ao cadastrar enquete: " . $e->getMessage();
+                }
+            } else {
+                $erro = "Banco de dados temporariamente inacessível.";
+            }
         }
     }
 }
@@ -174,6 +179,7 @@ if ($enquete_destaque && $pdo) {
 <!-- Modal: nova enquete -->
 <div id="modal-nova-enquete" class="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-nova-enquete">
   <form method="POST" action="" class="modal__panel">
+    <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
     <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
     <div class="modal__head">
       <h3 class="modal__title" id="titulo-nova-enquete">Nova enquete escolar</h3>
