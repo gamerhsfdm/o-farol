@@ -191,3 +191,135 @@ function log_audit(string $acao, ?string $tabela = null, ?int $registro_id = nul
         // Silencioso
     }
 }
+
+/**
+ * Sanitizador de HTML por allowlist estrita para o corpo das matérias.
+ * Permite apenas tags e atributos editoriais seguros:
+ * p, h2, h3, strong, em, a (href http/https/mailto, rel, target), ul, ol, li,
+ * blockquote, img (src de uploads/ ou http/https, alt, title), figure, figcaption, br.
+ * Remove scripts, styles, iframes, atributos on*, javascript:, etc.
+ */
+function sanitize_html_content(?string $html): string {
+    if (empty($html)) {
+        return '';
+    }
+
+    $trimmed = trim($html);
+    if ($trimmed === '') {
+        return '';
+    }
+
+    $dom = new DOMDocument();
+    // Suprime warnings de parsing de trechos HTML incompletos
+    $prev_err = libxml_use_internal_errors(true);
+    // Adiciona meta para UTF-8 correto
+    $dom->loadHTML('<?xml encoding="utf-8" ?><div>' . $trimmed . '</div>', LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+    libxml_clear_errors();
+    libxml_use_internal_errors($prev_err);
+
+    $allowedTags = [
+        'p', 'h2', 'h3', 'strong', 'b', 'em', 'i', 'a',
+        'ul', 'ol', 'li', 'blockquote', 'img', 'figure', 'figcaption', 'br'
+    ];
+
+    $cleanNode = function (DOMNode $node) use (&$cleanNode, $allowedTags): void {
+        if ($node->nodeType === XML_ELEMENT_NODE) {
+            $tagName = strtolower($node->nodeName);
+
+            // Se a tag não for permitida, remove ou desenvelopa
+            if (!in_array($tagName, $allowedTags, true)) {
+                $parent = $node->parentNode;
+                if ($parent) {
+                    if (in_array($tagName, ['script', 'style', 'iframe', 'object', 'embed', 'form', 'input', 'button'], true)) {
+                        $parent->removeChild($node);
+                        return;
+                    }
+                    // Para outras tags (ex: div, span), preserva o conteúdo movendo filhos para o pai
+                    while ($node->firstChild) {
+                        $parent->insertBefore($node->firstChild, $node);
+                    }
+                    $parent->removeChild($node);
+                }
+                return;
+            }
+
+            // Sanitiza atributos
+            if ($node->hasAttributes()) {
+                $attrsToRemove = [];
+                foreach ($node->attributes as $attr) {
+                    $attrName = strtolower($attr->nodeName);
+                    $attrValue = trim($attr->nodeValue);
+
+                    // Remove qualquer evento on* (onclick, onerror, onload...)
+                    if (str_starts_with($attrName, 'on')) {
+                        $attrsToRemove[] = $attrName;
+                        continue;
+                    }
+
+                    // Validação de atributos específicos
+                    if ($tagName === 'a') {
+                        if ($attrName === 'href') {
+                            $lowerHref = strtolower($attrValue);
+                            if (str_starts_with($lowerHref, 'javascript:') || str_starts_with($lowerHref, 'data:') || str_starts_with($lowerHref, 'vbscript:')) {
+                                $attrsToRemove[] = $attrName;
+                            }
+                        } elseif (!in_array($attrName, ['href', 'target', 'rel', 'title', 'class'], true)) {
+                            $attrsToRemove[] = $attrName;
+                        }
+                    } elseif ($tagName === 'img') {
+                        if ($attrName === 'src') {
+                            $lowerSrc = strtolower($attrValue);
+                            if (str_starts_with($lowerSrc, 'javascript:') || str_starts_with($lowerSrc, 'vbscript:')) {
+                                $attrsToRemove[] = $attrName;
+                            }
+                        } elseif (!in_array($attrName, ['src', 'alt', 'title', 'class', 'loading', 'decoding'], true)) {
+                            $attrsToRemove[] = $attrName;
+                        }
+                    } else {
+                        // Para tags gerais, permite apenas class ou title básico (remove style)
+                        if (!in_array($attrName, ['class', 'title'], true)) {
+                            $attrsToRemove[] = $attrName;
+                        }
+                    }
+                }
+
+                foreach ($attrsToRemove as $attrName) {
+                    $node->removeAttribute($attrName);
+                }
+
+                // Garante rel seguro em links
+                if ($tagName === 'a' && $node->hasAttribute('href')) {
+                    $node->setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+        }
+
+        // Processa filhos recursivamente
+        $child = $node->firstChild;
+        while ($child) {
+            $next = $child->nextSibling;
+            $cleanNode($child);
+            $child = $next;
+        }
+    };
+
+    // A raiz do DOM é o <div> encapsulado
+    $body = $dom->getElementsByTagName('div')->item(0);
+    if ($body) {
+        $child = $body->firstChild;
+        while ($child) {
+            $next = $child->nextSibling;
+            $cleanNode($child);
+            $child = $next;
+        }
+
+        // Serializa apenas o conteúdo interno da div
+        $output = '';
+        foreach ($body->childNodes as $c) {
+            $output .= $dom->saveHTML($c);
+        }
+        return $output;
+    }
+
+    return '';
+}
