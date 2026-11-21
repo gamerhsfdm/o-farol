@@ -44,16 +44,18 @@ Sistema completo de jornal escolar digital com portal público de credibilidade 
 - **Faixa de Envio de Pautas:** Canal com formulário real para envio de matérias pelos estudantes.
 - **Rodapé Institucional em 4 Colunas:** Corpo Editorial Discente, Orientação Pedagógica, Links Oficiais e Sede da Redação.
 
-### 3.2. Painel Administrativo CMS (`/admin`)
-- **Dashboard:** Indicadores reais em tempo real e gráfico com Chart.js.
-- **Editor de Reportagens:** Editor de texto rico (Quill), atribuição de múltiplos autores, professor orientador, posições editoriais e agendamento.
-- **Histórico & Restauração:** Criação de versões arquivadas a cada salvamento com restauração em 1 clique.
-- **Layout da Homepage:** Seleção e alternância das notícias que ocupam cada seção da capa e gerenciamento do Clube do Livro.
-- **Editorias & Categorias:** Criação, ordenação e controle de visibilidade no menu superior.
-- **Equipe Editorial:** Cadastro de autores discentes com série, biografia e atribuição de matérias.
-- **Biblioteca de Mídia:** Upload seguro de imagens com metadados (alt, legenda e créditos).
-- **Caixa de Entrada de Pautas:** Avaliação e aprovação de propostas enviadas pelos alunos.
-- **Configurações Gerais:** Edição dos dados institucionais, corpo docente e edição ativa.
+### 3.2. Painel Administrativo CMS (`/admin`) & Novo Fluxo Editorial
+- **Editor Visual WYSIWYG Nativo:** Editor rápido e leve em `contenteditable`, sem dependências pesadas, com atalhos de teclado (Ctrl+B, Ctrl+I, Ctrl+K, Ctrl+S, Ctrl+P), contadores de palavras e caracteres, cálculo de tempo de leitura e filtro de cola Word/Docs.
+- **Live Preview em Tempo Real:** Pré-visualização com 3 visões (Página da matéria, Card da capa e Card da editoria) e seletor de viewport (Desktop, Tablet e Celular) com sincronização e debounce.
+- **Sanitização Rigorosa:** Allowlist estrita de tags e atributos HTML via `DOMDocument` (`sanitize_html_content`) tanto no painel quanto no portal público.
+- **Controle de Posição na Capa:** Seleção de posições no Hero e seções com verificação de ocupação e detecção de matéria substituída.
+- **SEO & Google Snippet:** Edição de `meta_description` com contador de 155 caracteres, `meta_keywords`, verificação de slug em tempo real e preview visual do snippet do Google.
+- **Múltiplos Autores & Edição:** Suporte completo à tabela pivô `noticia_autores` (N:N) e vínculo a edições do jornal.
+- **Fluxo Editorial & Bloqueio Simultâneo:** Transições completas de status (`rascunho`, `revisao`, `aprovado`, `agendado`, `publicado`, `arquivado`), autosave de 30s com beacon de heartbeat contra edições simultâneas e notas editoriais internas para diálogo orientador-aluno.
+- **Histórico & Diff Visual:** Auditoria de alterações e comparação visual palavra por palavra (*diff* com inserções e deleções destacadas) e restauração em 1 clique.
+- **Listagem Otimizada de Notícias:** Miniaturas de capa, badges de pendências editoriais, ações em lote (publicar, enviar para revisão, arquivar, excluir), ordenação rápida, paginação e ação de duplicar notícia como novo rascunho.
+- **Publicação Automática de Agendadas:** Script CLI/cron (`cron/publicar-agendadas.php`) e rotina de fallback leve na capa do portal.
+- **Galeria de Imagens com Lightbox & Compartilhamento Social:** Modal lightbox nativo na matéria e na capa, botões diretos para WhatsApp, X (Twitter), cópia de link e estilo de impressão limpa / exportação para PDF (`@media print`).
 
 ---
 

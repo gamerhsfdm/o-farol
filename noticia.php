@@ -91,10 +91,7 @@ if ($pdo && !empty($slug)) {
 
 if (!$noticia) {
     http_response_code(404);
-    $page_title = 'Reportagem indisponível';
-    require_once __DIR__ . '/includes/header.php';
-    echo '<main class="container-farol py-8"><div class="editorial-card p-12 text-center bg-white"><h1 class="text-2xl font-headline font-bold">Reportagem não encontrada</h1><p class="text-sm text-gray-500 mt-2">A matéria solicitada não está disponível.</p></div></main>';
-    require_once __DIR__ . '/includes/footer.php';
+    require_once __DIR__ . '/404.php';
     exit;
 }
 
@@ -156,7 +153,9 @@ if (!$noticia) {
 */
 
 $page_title = $noticia['titulo'];
-$page_desc = $noticia['subtitulo'];
+$page_desc = !empty($noticia['meta_description']) ? $noticia['meta_description'] : $noticia['subtitulo'];
+$page_keywords = $noticia['meta_keywords'] ?? '';
+$page_image = $noticia['imagem_capa'] ?? '';
 require_once __DIR__ . '/includes/header.php';
 ?>
 
@@ -179,13 +178,33 @@ require_once __DIR__ . '/includes/header.php';
     <div class="lg:col-span-8">
       <?php require __DIR__ . '/includes/components/noticia-artigo.php'; ?>
 
-      <!-- Barra de Compartilhamento -->
-      <div class="mt-8 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+      <!-- Barra de Compartilhamento e Ações do Leitor -->
+      <div class="mt-8 pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3 farol-share-bar">
         <span class="text-xs font-bold text-gray-600 uppercase tracking-wider">Compartilhar Reportagem:</span>
-        <button onclick="navigator.clipboard.writeText(window.location.href); alert('Link da reportagem copiado com sucesso!');" 
-                class="btn-editorial-teal text-xs py-1.5 px-4 shadow-sm">
-          Copiar Link da Matéria 🔗
-        </button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <!-- WhatsApp -->
+          <a href="https://api.whatsapp.com/send?text=<?= urlencode($noticia['titulo'] . ' — ' . BASE_URL . '/noticia/' . $noticia['slug']) ?>" 
+             target="_blank" rel="noopener noreferrer"
+             class="btn-editorial-teal text-xs py-1.5 px-3 flex items-center gap-1.5" style="background:#15803d;border-color:#15803d">
+            WhatsApp
+          </a>
+          <!-- Twitter / X -->
+          <a href="https://twitter.com/intent/tweet?text=<?= urlencode($noticia['titulo']) ?>&url=<?= urlencode(BASE_URL . '/noticia/' . $noticia['slug']) ?>" 
+             target="_blank" rel="noopener noreferrer"
+             class="btn-editorial-teal text-xs py-1.5 px-3 flex items-center gap-1.5" style="background:#0f172a;border-color:#0f172a">
+            X (Twitter)
+          </a>
+          <!-- Copiar Link -->
+          <button type="button" onclick="navigator.clipboard.writeText(window.location.href); alert('Link da reportagem copiado com sucesso!');" 
+                  class="btn-editorial-teal text-xs py-1.5 px-3 shadow-sm">
+            Copiar Link 🔗
+          </button>
+          <!-- Imprimir / Salvar PDF -->
+          <button type="button" onclick="window.print();" 
+                  class="btn-editorial-teal text-xs py-1.5 px-3 shadow-sm" style="background:#475569;border-color:#475569" title="Imprimir matéria limpa ou salvar como PDF">
+            Imprimir / PDF 🖨️
+          </button>
+        </div>
       </div>
 
       <!-- ========================================================

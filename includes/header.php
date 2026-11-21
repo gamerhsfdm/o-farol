@@ -28,7 +28,20 @@ $css_version = (int)@filemtime(__DIR__ . '/../assets/css/farol-ui.css');
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title><?= isset($page_title) ? e($page_title) . ' — ' : '' ?><?= e($settings['site_nome']) ?> | <?= e($settings['site_subtitulo']) ?></title>
   <meta name="description" content="<?= isset($page_desc) ? e($page_desc) : e($settings['site_descricao']) ?>">
+  <?php if (!empty($page_keywords)): ?>
+    <meta name="keywords" content="<?= e($page_keywords) ?>">
+  <?php endif; ?>
   <meta name="theme-color" content="#0b3f50">
+
+  <!-- Open Graph / Redes Sociais -->
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="<?= isset($page_title) ? e($page_title) : e($settings['site_nome']) ?>">
+  <meta property="og:description" content="<?= isset($page_desc) ? e($page_desc) : e($settings['site_descricao']) ?>">
+  <?php if (!empty($page_image)): ?>
+    <meta property="og:image" content="<?= (str_starts_with($page_image, 'http://') || str_starts_with($page_image, 'https://')) ? e($page_image) : BASE_URL . '/' . e(ltrim($page_image, '/')) ?>">
+  <?php endif; ?>
+  <meta property="og:url" content="<?= BASE_URL . '/' . e(ltrim($_SERVER['REQUEST_URI'] ?? '', '/')) ?>">
+  <meta property="og:site_name" content="<?= e($settings['site_nome']) ?>">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

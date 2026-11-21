@@ -62,13 +62,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalClose = document.getElementById('lightbox-close');
 
   if (imageModal && modalImg) {
-    document.querySelectorAll('.zoomable-image').forEach(img => {
+    document.querySelectorAll('.zoomable-image, .article-prose img, .editorial-body-figure img').forEach(img => {
       img.style.cursor = 'zoom-in';
       img.addEventListener('click', () => {
         modalImg.src = img.src;
         modalImg.alt = img.alt || '';
         if (modalCaption) {
-          modalCaption.textContent = img.getAttribute('data-caption') || img.alt || '';
+          const figcaption = img.closest('figure')?.querySelector('figcaption');
+          modalCaption.textContent = figcaption ? figcaption.textContent : (img.getAttribute('data-caption') || img.alt || '');
         }
         imageModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';

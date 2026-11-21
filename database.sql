@@ -107,11 +107,14 @@ CREATE TABLE `noticias` (
   `meta_keywords` VARCHAR(255) NULL,
   `meta_description` TEXT NULL,
   `criado_por` INT NULL,
+  `editando_por` INT NULL,
+  `editando_em` DATETIME NULL,
   `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `atualizado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (`categoria_id`) REFERENCES `categorias`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`edicao_id`) REFERENCES `edicoes`(`id`) ON DELETE SET NULL,
   FOREIGN KEY (`criado_por`) REFERENCES `usuarios`(`id`) ON DELETE SET NULL,
+  FOREIGN KEY (`editando_por`) REFERENCES `usuarios`(`id`) ON DELETE SET NULL,
   INDEX `idx_slug` (`slug`),
   INDEX `idx_status_pub` (`status`, `publicado_em`),
   INDEX `idx_home` (`posicao_homepage`)
@@ -140,6 +143,19 @@ CREATE TABLE `noticia_versoes` (
   `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (`noticia_id`) REFERENCES `noticias`(`id`) ON DELETE CASCADE,
   FOREIGN KEY (`usuario_id`) REFERENCES `usuarios`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 8. NOTAS EDITORIAIS INTERNAS (Diálogo Orientador / Editor e Redator)
+CREATE TABLE `noticia_notas` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `noticia_id` INT NOT NULL,
+  `usuario_id` INT NOT NULL,
+  `texto` TEXT NOT NULL,
+  `status_resolvido` TINYINT(1) NOT NULL DEFAULT 0,
+  `criado_em` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (`noticia_id`) REFERENCES `noticias`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`usuario_id`) REFERENCES `usuarios`(`id`) ON DELETE CASCADE,
+  INDEX `idx_noticia_notas` (`noticia_id`, `criado_em`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 8. RESULTADOS DOS JOGOS INTERCLASSES

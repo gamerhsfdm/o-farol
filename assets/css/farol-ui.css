@@ -583,6 +583,76 @@ body.site-public {
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 @media print {
-  .topbar, .masthead, .nav-wrap, .pitch, .footer, #btn-back-to-top, #reading-progress { display: none !important; }
-  body.site-public { background: #fff; }
+  .topbar, .masthead, .nav-wrap, .pitch, .footer, #btn-back-to-top, #reading-progress, aside, #comentarios, .farol-share-bar { display: none !important; }
+  body.site-public { background: #fff !important; color: #000 !important; }
+  .article-prose { font-size: 12pt !important; line-height: 1.6 !important; color: #000 !important; }
+  .article-prose a { color: #000 !important; text-decoration: underline !important; }
+  .article-prose a::after { content: " (" attr(href) ")"; font-size: 9pt; color: #555; }
+  img { max-width: 100% !important; page-break-inside: avoid !important; }
+  h1, h2, h3 { page-break-after: avoid !important; }
+}
+
+/* ========================================================
+   LIGHTBOX MODAL & INTERAÇÕES DA MATÉRIA (ETAPA 6)
+   ======================================================== */
+.editorial-lightbox-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.editorial-lightbox-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.editorial-lightbox-content {
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+.editorial-lightbox-img {
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 4px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+}
+.editorial-lightbox-caption {
+  margin-top: 12px;
+  color: #f1f5f9;
+  font-size: 13px;
+  font-family: var(--sans, sans-serif);
+  text-align: center;
+  max-width: 680px;
+  line-height: 1.5;
+}
+.editorial-lightbox-close {
+  position: absolute;
+  top: -42px;
+  right: 0;
+  color: #fff;
+  background: transparent;
+  border: 0;
+  font-size: 32px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+.zoomable-image, .article-prose img, .editorial-body-figure img {
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+.zoomable-image:hover, .article-prose img:hover, .editorial-body-figure img:hover {
+  transform: scale(1.008);
 }

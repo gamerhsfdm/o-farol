@@ -41,14 +41,7 @@ if ($pdo && !empty($slug)) {
 
 if (!$categoria) {
     http_response_code(404);
-    $page_title = "Editoria Não Encontrada";
-    require_once __DIR__ . '/includes/header.php';
-    echo '<div class="container-farol py-20 text-center">
-            <h2 class="text-3xl font-headline font-bold text-gray-800 mb-2">Editoria não encontrada</h2>
-            <p class="text-gray-600 mb-6">A seção procurada não existe ou foi desativada.</p>
-            <a href="' . BASE_URL . '/index.php" class="btn-editorial-primary">Voltar à Capa</a>
-          </div>';
-    require_once __DIR__ . '/includes/footer.php';
+    require_once __DIR__ . '/404.php';
     exit;
 }
 

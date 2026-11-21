@@ -7,6 +7,12 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/header.php';
 
 $pdo = getDBConnection();
+// Fallback leve para publicar notícias agendadas
+if ($pdo) {
+    try {
+        $pdo->query("UPDATE noticias SET status = 'publicado', publicado_em = COALESCE(agendado_para, NOW()), atualizado_em = NOW() WHERE status = 'agendado' AND agendado_para <= NOW()");
+    } catch (Throwable $e) {}
+}
 $home_settings = get_site_settings();
 $ultimas_noticias = [];
 $mais_lidas = [];
