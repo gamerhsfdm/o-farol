@@ -207,6 +207,11 @@ CREATE TABLE `enquetes` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `pergunta` VARCHAR(255) NOT NULL,
   `descricao` TEXT NULL,
+  `permitir_multipla` TINYINT(1) NOT NULL DEFAULT 0,
+  `max_escolhas` INT NOT NULL DEFAULT 1,
+  `exibir_resultados_apos` ENUM('sempre', 'apos_votar', 'apos_encerrar') NOT NULL DEFAULT 'apos_votar',
+  `categoria_tag` VARCHAR(80) NULL DEFAULT 'Geral',
+  `destaque_sidebar` TINYINT(1) NOT NULL DEFAULT 0,
   `ativo` TINYINT(1) NOT NULL DEFAULT 1,
   `data_inicio` DATE NULL,
   `data_fim` DATE NULL,
@@ -218,6 +223,7 @@ CREATE TABLE `enquete_opcoes` (
   `enquete_id` INT NOT NULL,
   `opcao` VARCHAR(200) NOT NULL,
   `votos_count` INT NOT NULL DEFAULT 0,
+  `cor_destaque` VARCHAR(20) NULL DEFAULT '#0f5368',
   `ordem` INT NOT NULL DEFAULT 0,
   FOREIGN KEY (`enquete_id`) REFERENCES `enquetes`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

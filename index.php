@@ -143,12 +143,12 @@ if ($pdo) {
     } catch (Exception $e) {}
 }
 
-// 8. Sidebar: Enquete (Voz do Aluno)
+// 8. Sidebar: Enquete (Voz do Aluno) com prioridade para destaque_sidebar
 $enquete = null;
 $enquete_opcoes = [];
 if ($pdo) {
     try {
-        $stmt = $pdo->query("SELECT * FROM enquetes WHERE ativo = 1 ORDER BY id DESC LIMIT 1");
+        $stmt = $pdo->query("SELECT * FROM enquetes WHERE ativo = 1 ORDER BY destaque_sidebar DESC, id DESC LIMIT 1");
         $enquete = $stmt->fetch();
         if ($enquete) {
             $stmtO = $pdo->prepare("SELECT * FROM enquete_opcoes WHERE enquete_id = ? ORDER BY ordem ASC");
@@ -593,25 +593,46 @@ exit;
       </div>
 
       <!-- MÓDULO 3: VOZ DO ALUNO (ENQUETE COM FEEDBACK VISUAL) -->
-      <?php if ($enquete): ?>
+      <?php if ($enquete): 
+        $isMultipla = (int)($enquete['permitir_multipla'] ?? 0) === 1;
+        $maxEscolhas = (int)($enquete['max_escolhas'] ?? 1);
+        $catTag = $enquete['categoria_tag'] ?? 'Opinião Discente';
+      ?>
         <div class="editorial-card p-6 bg-white">
-          <div class="flex items-center gap-2 pb-2 mb-3 border-b-2 border-[#111827]">
-            <svg class="w-4 h-4 text-[#b91c1c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            <h4 class="text-xs font-bold text-gray-900 uppercase tracking-widest font-sans">VOZ DO ALUNO • ENQUETE</h4>
+          <div class="flex items-center justify-between pb-2 mb-3 border-b-2 border-[#111827]">
+            <div class="flex items-center gap-2">
+              <svg class="w-4 h-4 text-[#b91c1c]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <h4 class="text-xs font-bold text-gray-900 uppercase tracking-widest font-sans">VOZ DO ALUNO</h4>
+            </div>
+            <span class="editorial-badge badge-teal text-[8px]"><?= e($catTag) ?></span>
           </div>
 
-          <h5 class="text-sm font-headline font-bold text-[#111827] leading-snug mb-4">
+          <h5 class="text-sm font-headline font-bold text-[#111827] leading-snug mb-2">
             <?= e($enquete['pergunta']) ?>
           </h5>
 
-          <form id="form-enquete" action="<?= BASE_URL ?>/api/votar-enquete.php" method="POST">
+          <?php if (!empty($enquete['descricao'])): ?>
+            <p class="text-xs text-gray-500 font-sans mb-3"><?= e($enquete['descricao']) ?></p>
+          <?php endif; ?>
+
+          <?php if ($isMultipla): ?>
+            <span class="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded font-medium inline-block mb-3">
+              Múltipla escolha: selecione até <?= $maxEscolhas ?> opções
+            </span>
+          <?php endif; ?>
+
+          <form id="form-enquete" action="<?= BASE_URL ?>/api/votar-enquete.php" method="POST" data-max-escolhas="<?= $isMultipla ? $maxEscolhas : 1 ?>">
             <input type="hidden" name="enquete_id" value="<?= e((string)$enquete['id']) ?>">
             <input type="hidden" name="csrf_token" value="<?= csrf_token() ?>">
             
             <div class="space-y-2 mb-4" id="enquete-opcoes-container">
               <?php foreach ($enquete_opcoes as $idx => $op): ?>
                 <label class="flex items-start gap-2.5 text-xs text-gray-700 cursor-pointer p-2.5 rounded hover:bg-gray-50 border border-gray-200 transition-colors">
-                  <input type="radio" name="opcao_id" value="<?= e((string)$op['id']) ?>" <?= $idx === 0 ? 'checked' : '' ?> class="mt-0.5 text-[#0f4c5c] focus:ring-[#0f4c5c]">
+                  <?php if ($isMultipla): ?>
+                    <input type="checkbox" name="opcoes_ids[]" value="<?= e((string)$op['id']) ?>" class="mt-0.5 text-[#0f4c5c] focus:ring-[#0f4c5c] rounded">
+                  <?php else: ?>
+                    <input type="radio" name="opcao_id" value="<?= e((string)$op['id']) ?>" <?= $idx === 0 ? 'checked' : '' ?> class="mt-0.5 text-[#0f4c5c] focus:ring-[#0f4c5c]">
+                  <?php endif; ?>
                   <span class="font-medium"><?= e($op['opcao']) ?></span>
                 </label>
               <?php endforeach; ?>
@@ -639,6 +660,22 @@ document.getElementById('form-enquete')?.addEventListener('submit', async functi
   const btn = document.getElementById('btn-votar');
   const feedback = document.getElementById('enquete-feedback');
   
+  // Validação no cliente se for múltipla escolha
+  const maxEscolhas = parseInt(form.getAttribute('data-max-escolhas') || '1', 10);
+  const checkedBoxes = form.querySelectorAll('input[name="opcoes_ids[]"]:checked');
+  if (form.querySelector('input[name="opcoes_ids[]"]') && checkedBoxes.length === 0) {
+    feedback.classList.remove('hidden');
+    feedback.className = 'mt-3 text-center text-xs text-red-800 bg-red-50 p-2.5 rounded border border-red-200';
+    feedback.innerText = 'Selecione ao menos uma opção para votar.';
+    return;
+  }
+  if (checkedBoxes.length > maxEscolhas) {
+    feedback.classList.remove('hidden');
+    feedback.className = 'mt-3 text-center text-xs text-red-800 bg-red-50 p-2.5 rounded border border-red-200';
+    feedback.innerText = 'Você pode selecionar no máximo ' + maxEscolhas + ' opções.';
+    return;
+  }
+
   btn.disabled = true;
   btn.innerText = 'Processando voto...';
 
@@ -656,21 +693,24 @@ document.getElementById('form-enquete')?.addEventListener('submit', async functi
       feedback.innerText = '✓ ' + data.mensagem;
       btn.innerText = 'VOTO COMPUTADO';
       
-      if (data.resultados) {
+      if (data.exibir_resultados && data.resultados) {
         let html = '<div class="space-y-3 mt-3">';
         data.resultados.forEach(r => {
+          const barColor = r.cor_destaque || '#0f5368';
           html += `<div>
             <div class="flex justify-between text-xs mb-1 font-semibold text-gray-800">
               <span>${r.opcao}</span>
               <span>${r.percentual}%</span>
             </div>
             <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden">
-              <div class="bg-[#0f4c5c] h-full transition-all duration-500" style="width: ${r.percentual}%"></div>
+              <div class="h-full transition-all duration-500" style="width: ${r.percentual}%; background-color: ${barColor}"></div>
             </div>
           </div>`;
         });
         html += '</div>';
         document.getElementById('enquete-opcoes-container').innerHTML = html;
+      } else if (!data.exibir_resultados) {
+        document.getElementById('enquete-opcoes-container').innerHTML = '<p class="text-xs text-gray-500 italic p-3 bg-gray-50 rounded">Os resultados parciais desta enquete serão divulgados após o encerramento do prazo.</p>';
       }
     } else {
       feedback.className = 'mt-3 text-center text-xs text-red-800 bg-red-50 p-2.5 rounded border border-red-200';
