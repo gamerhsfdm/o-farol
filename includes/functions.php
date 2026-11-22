@@ -144,6 +144,30 @@ function get_active_categories(): array {
 }
 
 /**
+ * Nome de editoria para exibição.
+ * Nomes gravados todo em maiúsculas (ex.: "CLUBE DO LIVRO") viram "Clube do Livro";
+ * siglas de uma palavra curta (FECCI, SBPC) e nomes já digitados com minúsculas ficam como estão.
+ */
+function category_label(?string $name): string {
+    $name = trim((string)$name);
+    if ($name === '' || mb_strtoupper($name, 'UTF-8') !== $name) {
+        return $name;
+    }
+    if (!str_contains($name, ' ') && mb_strlen($name, 'UTF-8') <= 5) {
+        return $name;
+    }
+    $minor = ['de', 'da', 'do', 'das', 'dos', 'e', 'em', 'a', 'o'];
+    $words = explode(' ', mb_strtolower($name, 'UTF-8'));
+    foreach ($words as $i => $word) {
+        if ($i > 0 && in_array($word, $minor, true)) {
+            continue;
+        }
+        $words[$i] = mb_strtoupper(mb_substr($word, 0, 1, 'UTF-8'), 'UTF-8') . mb_substr($word, 1, null, 'UTF-8');
+    }
+    return implode(' ', $words);
+}
+
+/**
  * Autenticação e Verificação de Usuário
  */
 function is_logged_in(): bool {

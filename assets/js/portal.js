@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', () => {
     btnMenuToggle.addEventListener('click', () => setMenu(mobileMenu.hidden));
     window.matchMedia('(min-width: 1024px)').addEventListener('change', (ev) => { if (ev.matches) setMenu(false); });
   }
+  const btnMobileSearch = document.getElementById('btn-mobile-search');
+  if (btnMobileSearch && mobileMenu) {
+    btnMobileSearch.addEventListener('click', () => {
+      setMenu(true);
+      document.getElementById('drawer-busca')?.focus();
+    });
+  }
   const moreMenu = document.querySelector('.nav__more');
   document.addEventListener('click', (e) => {
     if (moreMenu && moreMenu.open && !moreMenu.contains(e.target)) moreMenu.open = false;
@@ -54,6 +61,90 @@ document.addEventListener('DOMContentLoaded', () => {
     if (moreMenu && moreMenu.open) { moreMenu.open = false; moreMenu.querySelector('summary').focus(); }
     if (mobileMenu && !mobileMenu.hidden) { setMenu(false); btnMenuToggle.focus(); }
   });
+
+  // 3b. Fotos da capa: aparecem com um fade quando terminam de carregar (sem JS, já ficam visíveis)
+  document.querySelectorAll('.m__img').forEach((img) => {
+    const show = () => img.classList.add('is-loaded');
+    if (img.complete) { show(); return; }
+    img.addEventListener('load', show, { once: true });
+    img.addEventListener('error', show, { once: true });
+  });
+
+  // 3c. Enquete "Voz do aluno": voto sem recarregar a página
+  const pollForm = document.getElementById('form-enquete');
+  if (pollForm) {
+    const btn = document.getElementById('btn-votar');
+    const feedback = document.getElementById('enquete-feedback');
+    const options = document.getElementById('enquete-opcoes-container');
+    const btnLabel = btn ? btn.textContent : '';
+
+    const say = (text, ok) => {
+      feedback.hidden = false;
+      feedback.className = 'poll__feedback ' + (ok ? 'is-ok' : 'is-error');
+      feedback.textContent = text;
+    };
+
+    const showResults = (results) => {
+      options.replaceChildren();
+      results.forEach((r) => {
+        const pct = Math.max(0, Math.min(100, Number(r.percentual) || 0));
+        const color = /^#[0-9a-f]{3,8}$/i.test(String(r.cor_destaque || '')) ? r.cor_destaque : '';
+        const row = document.createElement('div');
+        row.className = 'poll__result';
+        const head = document.createElement('div');
+        const name = document.createElement('span');
+        name.textContent = r.opcao;
+        const value = document.createElement('span');
+        value.textContent = pct + '%';
+        head.append(name, value);
+        const bar = document.createElement('div');
+        bar.className = 'poll__bar';
+        const fill = document.createElement('span');
+        fill.style.width = '0%';
+        if (color) fill.style.background = color;
+        bar.append(fill);
+        row.append(head, bar);
+        options.append(row);
+        requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = pct + '%'; }));
+      });
+    };
+
+    pollForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const max = parseInt(pollForm.dataset.maxEscolhas || '1', 10);
+      const boxes = pollForm.querySelectorAll('input[name="opcoes_ids[]"]');
+      const checked = pollForm.querySelectorAll('input[name="opcoes_ids[]"]:checked');
+      if (boxes.length && checked.length === 0) { say('Selecione ao menos uma opção para votar.', false); return; }
+      if (checked.length > max) { say('Você pode selecionar no máximo ' + max + ' opções.', false); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Registrando voto...';
+      try {
+        const resp = await fetch(pollForm.action, { method: 'POST', body: new FormData(pollForm) });
+        const data = await resp.json();
+        if (data.sucesso) {
+          say(data.mensagem || 'Voto registrado.', true);
+          btn.textContent = 'Voto registrado';
+          if (data.exibir_resultados && Array.isArray(data.resultados)) {
+            showResults(data.resultados);
+          } else if (!data.exibir_resultados) {
+            const note = document.createElement('p');
+            note.className = 'poll__desc';
+            note.textContent = 'Os resultados serão divulgados após o encerramento da enquete.';
+            options.replaceChildren(note);
+          }
+        } else {
+          say(data.mensagem || 'Não foi possível registrar o voto.', false);
+          btn.disabled = false;
+          btn.textContent = btnLabel;
+        }
+      } catch (err) {
+        say('Erro de comunicação com o servidor. Tente novamente.', false);
+        btn.disabled = false;
+        btn.textContent = btnLabel;
+      }
+    });
+  }
 
   // 4. Modal / Lightbox de Imagens
   const imageModal = document.getElementById('image-lightbox');
